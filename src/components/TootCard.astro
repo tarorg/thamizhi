@@ -1,0 +1,214 @@
+---
+export interface Props {
+	username: string;
+	content: string;
+	timestamp: string;
+	profileImageUrl: string;
+	media: any[]; // You might want to define a more specific type for media
+	id: string;
+	commentCount: number; // Add this new prop
+}
+
+const { username, content, timestamp, profileImageUrl, media, id, commentCount } = Astro.props;
+
+// Function to format the timestamp
+function formatTimestamp(timestamp: string): string {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    
+    if (diffMinutes < 60) {
+        return `${diffMinutes}m`;
+    } else {
+        const diffHours = Math.floor(diffMinutes / 60);
+        return `${diffHours}h`;
+    }
+}
+
+// Update the getFirstMedia function
+function getFirstMedia(media: Props['media']) {
+	const mediaItem = media.find(item => item.type === 'image' || item.type === 'video' || item.type === 'gifv');
+	return mediaItem ? mediaItem : null;
+}
+
+const firstMedia = getFirstMedia(media);
+console.log('First media:', firstMedia); // Add this line
+---
+
+<div class="post">
+	<div class="header">
+		<div class="user-info">
+			<img src={profileImageUrl} alt={`${username}'s profile`} class="profile-image" />
+			<span class="username">{username}</span>
+		</div>
+		<span class="timestamp">{formatTimestamp(timestamp)}</span>
+	</div>
+	<div class="content">
+		{firstMedia ? (
+			firstMedia.type === 'image' ? (
+				<img src={firstMedia.preview_url} alt="Post image" class="post-image" />
+			) : (firstMedia.type === 'video' || firstMedia.type === 'gifv') ? (
+				<div class="video-container">
+					<video 
+						src={firstMedia.url} 
+						poster={firstMedia.preview_url} 
+						controls 
+						preload="metadata"
+						class="post-video"
+						autoplay
+						loop
+						muted
+					>
+						Your browser does not support the video tag.
+					</video>
+				</div>
+			) : (
+				<div class="unsupported-media">Unsupported media type: {firstMedia.type}</div>
+			)
+		) : (
+			<div class="text-content">
+				<div class="silhouette"></div>
+				<div class="text" set:html={content}></div>
+			</div>
+		)}
+	</div>
+	<div class="footer">
+		<span>100 views</span>
+		<span class="comments-trigger" data-toot-id={id}>{commentCount} comments</span>
+	</div>
+</div>
+
+<style>
+	.post {
+		width: 400px;
+		background-color: white;
+		overflow: hidden;
+		margin-bottom: 20px;
+		padding-bottom: 20px;
+		border-bottom: 1px solid #f0f0f0; // Very light divider
+	}
+	.header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 10px;
+	}
+	.user-info {
+		display: flex;
+		align-items: center;
+	}
+	.user-info .profile-image {
+		width: 40px;
+		height: 40px;
+		border-radius: 4px;
+		margin-right: 16px; /* Increased to 16px for more noticeable spacing */
+		object-fit: cover;
+	}
+	.user-info .username {
+		font-weight: normal;
+		margin-bottom: 0;
+	}
+	.timestamp {
+		color: #888;
+		margin-left: 5px;
+		font-size: 0.8em; // Added to reduce the timestamp size
+	}
+	.content {
+		position: relative;
+		width: 100%;
+		padding-bottom: 100%;
+		background-color: #5a7d5a;
+		color: white;
+		overflow: hidden;
+	}
+	.video-container {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background-color: black;
+	}
+	.post-image, .post-video {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		background-color: black;
+	}
+	.text-content {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		padding: 20px;
+		overflow-y: auto;
+	}
+	.silhouette {
+		position: absolute;
+		right: -50px;
+		bottom: -50px;
+		width: 300px;
+		height: 400px;
+		background-color: #b8a6c9;
+		border-radius: 50% 0 0 50%;
+	}
+	.text {
+		position: relative;
+		z-index: 1;
+	}
+	.text :global(h2) {
+		font-size: 24px;
+		margin: 0 0 10px;
+		font-weight: normal;
+	}
+	.text :global(h3) {
+		font-size: 36px;
+		margin: 0 0 10px;
+		font-weight: bold;
+	}
+	.text :global(.arrow) {
+		display: inline-block;
+		transform: translateY(-5px);
+	}
+	.footer {
+		display: flex;
+		justify-content: space-between;
+		padding: 10px;
+		color: #888;
+	}
+	.unsupported-media {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background-color: #f0f0f0;
+		color: #666;
+	}
+	.comments-trigger {
+		cursor: pointer;
+		color: #1da1f2;
+	}
+	.comments-trigger:hover {
+		text-decoration: underline;
+	}
+</style>
+
+<script>
+	document.querySelectorAll('.comments-trigger').forEach(trigger => {
+		trigger.addEventListener('click', () => {
+			const tootId = trigger.getAttribute('data-toot-id');
+			document.dispatchEvent(new CustomEvent('openComments', { detail: { tootId } }));
+		});
+	});
+</script>

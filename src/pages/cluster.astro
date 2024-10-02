@@ -1,0 +1,124 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BottomMenu from '../components/menu.astro';  // Updated import
+---
+
+<Layout title="CLUSTER">
+	<main class="container">
+		<div class="search-section">
+			<input type="text" class="search" placeholder="Search..." />
+		</div>
+		<div class="line"></div>
+		
+		<div class="filter-section">
+			<button class="filter-option active">Collections</button>
+			<button class="filter-option">Clusters</button>
+			<button class="filter-option">Read</button>
+		</div>
+		
+		<div class="section">
+			<div class="section-title">THAMIZHI</div>
+		</div>
+		
+		<hr>
+		
+		<div class="section">
+			<div class="section-title">FEED</div>
+		</div>
+		
+		<hr>
+		
+		<div class="section">
+			<div class="section-title">I</div>
+		</div>
+		
+		<hr>
+		
+		<div class="section">
+			<div class="section-title">CLUSTERS</div>
+		</div>
+	</main>
+	<BottomMenu />
+</Layout>
+
+<style>
+	.container {
+		max-width: 360px;
+		margin: 0 auto;
+		padding: 20px;
+		box-sizing: border-box;
+		font-family: Arial, sans-serif;
+		color: #000;
+		background-color: white;
+	}
+	.search-section {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin: 12px 0;
+	}
+	.search {
+		flex-grow: 1;
+		height: 29px;
+		color: #000000;
+		font-family: 'Inter', sans-serif;
+		font-size: 24px;
+		font-weight: 700;
+		line-height: 29px;
+		text-align: left;
+		white-space: nowrap;
+		border: none;
+		outline: none;
+		background: transparent;
+	}
+	.search::placeholder {
+		color: #a7a0a0;
+	}
+	.line {
+		width: 100%;
+		height: 1px;
+		margin: 14px 0;
+		background: #000000;
+	}
+	.filter-section {
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: 30px;
+	}
+	.filter-option {
+		background: none;
+		border: none;
+		font-size: 16px;
+		color: #A7A1A1;
+		cursor: pointer;
+		padding: 5px 10px;
+		border-radius: 15px;
+	}
+	.filter-option.active {
+		background-color: #A7A1A1;
+		color: white;
+	}
+	.section {
+		margin-bottom: 20px;
+	}
+	.section-title {
+		font-size: 18px;
+		font-weight: bold;
+		margin-bottom: 10px;
+	}
+	hr {
+		border: none;
+		border-top: 1px solid #000;
+		margin: 20px 0;
+	}
+</style>
+
+<script>
+	const filterOptions = document.querySelectorAll('.filter-option');
+	filterOptions.forEach(option => {
+		option.addEventListener('click', () => {
+			filterOptions.forEach(btn => btn.classList.remove('active'));
+			option.classList.add('active');
+		});
+	});
+</script>

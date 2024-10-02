@@ -1,0 +1,10 @@
+.post-card {
+  /* ... existing styles ... */
+  box-shadow: none; /* Remove the box shadow */
+}
+
+.post-card, 
+div.post-card, 
+body .post-card {
+  box-shadow: none !important;
+}

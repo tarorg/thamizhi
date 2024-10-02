@@ -1,0 +1,80 @@
+---
+import Layout from '../layouts/Layout.astro';
+import BottomMenu from '../components/menu.astro';  // Updated import
+---
+
+<Layout title="I Page">
+  <main class="i-page">
+    <div class="icon-container">
+      <img src="/i.png" alt="I" class="i-icon rotating" />
+    </div>
+    <div class="input-container">
+      <input type="text" placeholder="ANSWER" class="answer-input" />
+      <button type="submit" class="submit-button">
+        <span class="arrow">↑</span>
+      </button>
+    </div>
+  </main>
+  <BottomMenu />
+</Layout>
+
+<style>
+  .i-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .icon-container {
+    text-align: left;
+    padding-top: 20px;
+    padding-left: 20px;
+  }
+
+  .i-icon {
+    width: 32px; /* Reduced from 48px to 32px */
+    height: 32px; /* Reduced from 48px to 32px */
+  }
+
+  .rotating {
+    animation: rotate 5s linear infinite;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .input-container {
+    display: flex;
+    margin-bottom: 80px; /* Increased from 20px to 80px */
+  }
+
+  .answer-input {
+    flex-grow: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px;
+  }
+
+  .submit-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-left: none;
+    border-radius: 0 5px 5px 0;
+    padding: 10px 15px;
+    cursor: pointer;
+  }
+
+  .arrow {
+    font-size: 20px;
+  }
+</style>

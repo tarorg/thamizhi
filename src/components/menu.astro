@@ -1,0 +1,59 @@
+---
+const menuItems = [
+  { icon: '/feed.png', href: '/' },
+  { icon: '/i.png', href: '/i' },
+  { icon: '/cluster.png', href: '/cluster' },  // This should match your file name
+];
+---
+
+<nav class="bottom-menu">
+  {menuItems.map((item) => (
+    <a href={item.href} class="menu-item">
+      <img src={item.icon} alt="" class="icon" />
+    </a>
+  ))}
+</nav>
+
+<style>
+  .bottom-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-around;
+    background-color: white;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    padding: 10px 0;
+    z-index: 1000;
+  }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #333;
+  }
+
+  .icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+
+  .menu-item.active .icon {
+    filter: brightness(0.7); /* Darken the active icon */
+  }
+</style>
+
+<script>
+  const menuItems = document.querySelectorAll('.menu-item');
+  const currentPath = window.location.pathname;
+
+  menuItems.forEach((item) => {
+    if (item.getAttribute('href') === currentPath) {
+      item.classList.add('active');
+    }
+  });
+</script>

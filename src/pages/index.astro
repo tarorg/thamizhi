@@ -1,0 +1,131 @@
+---
+import Layout from '../layouts/Layout.astro';
+import TootCard from '../components/TootCard.astro';
+import Comments from '../components/Comments.astro';
+import BottomMenu from '../components/menu.astro';  // Updated import
+
+let toots = [];
+let error = null;
+
+const ACCESS_TOKEN = import.meta.env.MASTODON_ACCESS_TOKEN;
+
+try {
+  // Step 1: Fetch account information
+  const accountResponse = await fetch('https://mastodon.social/api/v1/accounts/lookup?acct=thamizhi', {
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`
+    }
+  });
+  if (!accountResponse.ok) {
+    throw new Error(`HTTP error! status: ${accountResponse.status}`);
+  }
+  const accountData = await accountResponse.json();
+  const accountId = accountData.id;
+
+  // Step 2: Fetch statuses using the account ID
+  const statusesResponse = await fetch(`https://mastodon.social/api/v1/accounts/${accountId}/statuses`, {
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`
+    }
+  });
+  if (!statusesResponse.ok) {
+    throw new Error(`HTTP error! status: ${statusesResponse.status}`);
+  }
+  const data = await statusesResponse.json();
+  if (Array.isArray(data)) {
+    toots = data;
+  } else {
+    throw new Error('Received data is not an array');
+  }
+} catch (e: unknown) {
+  console.error('Error fetching toots:', e);
+  error = e instanceof Error ? e.message : String(e);
+}
+
+console.log('Fetched toots:', toots);
+console.log('Media attachments:', toots.map(toot => toot.media_attachments));
+
+// Add this function to get the comment count
+async function getCommentCount(tootId: string) {
+  try {
+    const response = await fetch(`https://mastodon.social/api/v1/statuses/${tootId}/context`, {
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.descendants ? data.descendants.length : 0;
+  } catch (error) {
+    console.error('Error fetching comment count:', error);
+    return 0;
+  }
+}
+
+// Fetch comment counts for all toots
+const tootsWithCommentCounts = await Promise.all(toots.map(async (toot) => {
+  const commentCount = await getCommentCount(toot.id);
+  return { ...toot, commentCount };
+}));
+
+---
+
+<Layout title="Feed">
+	<main>
+		<div class="toot-list">
+			{error ? (
+				<p class="error">Error loading toots: {error}</p>
+			) : tootsWithCommentCounts.length > 0 ? (
+				tootsWithCommentCounts.map((toot) => (
+					<TootCard
+						username={toot.account.username.replace(/^@/, '')}
+						content={toot.content}
+						timestamp={toot.created_at}
+						profileImageUrl={toot.account.avatar}
+						media={toot.media_attachments}
+						id={toot.id}
+						commentCount={toot.commentCount}
+					/>
+				))
+			) : (
+				<p>No toots found.</p>
+			)}
+		</div>
+	</main>
+	<Comments />
+	<BottomMenu />
+</Layout>
+
+<style>
+	body {
+		font-family: Arial, sans-serif;
+		margin: 0;
+		padding: 0;
+	}
+	main {
+		max-width: 600px;
+		width: 100%;
+		margin: 0 auto;
+		padding: 0;
+		background-color: white;
+		padding-bottom: 60px;
+	}
+	.toot-list {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.error {
+		color: #ff6b6b;
+		text-align: center;
+		padding: 20px;
+	}
+
+	@media (max-width: 600px) {
+		main {
+			max-width: 100%;
+		}
+	}
+</style>

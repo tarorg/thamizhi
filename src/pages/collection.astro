@@ -1,0 +1,214 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Menu from '../components/menu.astro';
+
+const items = [
+  { number: '01', title: 'How Illayaraja Revolutionized Tamil Cinema with His Iconic Music' },
+  { number: '02', title: 'Exploring the Rich Flavors of Tamil Cuisine' },
+];
+---
+
+<Layout title="Collection">
+  <main class="collection">
+    <div class="flex-column-a">
+      <div class="header">
+        <div class="title-container">
+          <input type="text" class="title-input" placeholder="Title" />
+        </div>
+        <img src="/i.png" alt="Info" class="info-icon" />
+      </div>
+      <div class="line"></div>
+      <div class="search-section">
+        <input type="text" class="search" placeholder="Search..." />
+      </div>
+      <div class="line"></div>
+      {items.map((item, index) => (
+        <>
+          <div class="item">
+            <span class="item-number">{item.number}</span>
+            <span class="item-title">{item.title}</span>
+          </div>
+          {index < items.length - 1 && <div class="item-divider"></div>}
+        </>
+      ))}
+    </div>
+    <button class="fab-add">
+      <svg viewBox="0 0 24 24" width="24" height="24">
+        <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+      </svg>
+    </button>
+    <Menu />
+  </main>
+</Layout>
+
+<style>
+  .collection {
+    position: relative;
+    width: 360px;
+    height: 640px;
+    background: #ffffff;
+    overflow: hidden;
+  }
+  .flex-column-a {
+    position: absolute;
+    width: 360px;
+    height: 607px;
+    top: 21px;
+    left: 0px;
+  }
+  .header {
+    margin: 0 29px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .title-container {
+    width: 98%;
+  }
+  .title-input {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #000000;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+  }
+  .title-input::placeholder {
+    color: #a7a0a0;
+  }
+  .info-icon {
+    width: 24px;
+    height: 24px;
+    margin-left: 10px;
+    flex-shrink: 0;
+  }
+  .search-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px 29px 0;
+  }
+  .search {
+    flex-grow: 1;
+    height: 29px;
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 29px;
+    text-align: left;
+    white-space: nowrap;
+    border: none;
+    outline: none;
+    background: transparent;
+  }
+  .search::placeholder {
+    color: #a7a0a0;
+  }
+  .line {
+    position: relative;
+    width: 360px;
+    height: 1px;
+    margin: 14px 0 0 0;
+    background: #000000;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    margin: 20px 0 0 22px;
+  }
+  .item-number {
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 29px;
+    width: 40px;
+  }
+  .item-title {
+    color: #000000;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 14.523px;
+    margin-left: 15px;
+    width: 264px;
+  }
+  .item-divider {
+    width: calc(100% - 44px);
+    height: 1px;
+    background: #e0e0e0;
+    margin: 10px 0 0 22px;
+  }
+  .fab-add {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background-color: #f0f0f0;
+    color: #333333;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .fab-add:hover {
+    background-color: #e0e0e0;
+  }
+  .fab-add:active {
+    background-color: #d0d0d0;
+  }
+  .sparkles-icon {
+    width: 24px;
+    height: 24px;
+    margin-left: 10px;
+    flex-shrink: 0;
+  }
+</style>
+
+<script>
+  const titleInput = document.querySelector('.title-input') as HTMLInputElement;
+  const searchInput = document.querySelector('.search') as HTMLInputElement;
+  const items = document.querySelectorAll('.item');
+
+  if (titleInput) {
+    titleInput.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.value.length > 0) {
+        target.style.color = '#000000';
+      } else {
+        target.style.color = '#a7a0a0';
+      }
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      const searchTerm = target.value.toLowerCase();
+      items.forEach((item) => {
+        const titleElement = item.querySelector('.item-title');
+        if (titleElement && titleElement.textContent) {
+          const title = titleElement.textContent.toLowerCase();
+          if (title.includes(searchTerm)) {
+            (item as HTMLElement).style.display = 'flex';
+            const divider = item.nextElementSibling as HTMLElement;
+            if (divider) divider.style.display = 'block';
+          } else {
+            (item as HTMLElement).style.display = 'none';
+            const divider = item.nextElementSibling as HTMLElement;
+            if (divider) divider.style.display = 'none';
+          }
+        }
+      });
+    });
+  }
+</script>
