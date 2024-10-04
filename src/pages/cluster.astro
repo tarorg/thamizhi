@@ -48,6 +48,9 @@ import PostComp from '../components/postcomp.astro';
 					const li = document.createElement('li');
 					li.className = 'post-item';
 					li.textContent = post.title;
+					li.addEventListener('click', () => {
+						openPostComp(post.id);
+					});
 					postList.appendChild(li);
 				});
 			}
@@ -66,10 +69,19 @@ import PostComp from '../components/postcomp.astro';
 
 		const fabAdd = document.getElementById('fabAdd');
 		const postCompModal = document.getElementById('postCompModal');
-		if (fabAdd && postCompModal) {
-			fabAdd.addEventListener('click', () => {
+		
+		function openPostComp(postId = null) {
+			if (postCompModal) {
+				const postComp = postCompModal.querySelector('astro-island');
+				if (postComp) {
+					postComp.setAttribute('data-post-id', postId || '');
+				}
 				postCompModal.classList.remove('hidden');
-			});
+			}
+		}
+
+		if (fabAdd) {
+			fabAdd.addEventListener('click', () => openPostComp());
 		}
 
 		// Close modal when clicking outside
@@ -173,6 +185,11 @@ import PostComp from '../components/postcomp.astro';
 		border-bottom: 1px solid #e0e0e0;
 		font-size: 16px;
 		color: #333;
+		cursor: pointer;
+		transition: background-color 0.3s ease;
+	}
+	.post-item:hover {
+		background-color: #f5f5f5;
 	}
 	.post-item:last-child {
 		border-bottom: none;

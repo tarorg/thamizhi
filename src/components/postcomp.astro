@@ -3,9 +3,15 @@ import Layout from '../layouts/Layout.astro';
 import Menu from '../components/menu.astro';
 import Meta from '../components/meta.astro';
 import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
+
+interface Props {
+  postId?: string;
+}
+
+const { postId } = Astro.props;
 ---
 
-<div class="post-comp-container">
+<div class="post-comp-container" data-post-id={postId}>
   <main class="main-container">
     <!-- 1. Title Section -->
     <div class="title-section">
@@ -66,33 +72,40 @@ import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
   import Table from '@editorjs/table';
   import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
+    const container = document.querySelector('.post-comp-container');
+    const postId = container?.getAttribute('data-post-id');
+    let post = null;
+
+    const titleInput = document.querySelector('.title-input') as HTMLInputElement;
+    const fileNameInput = document.querySelector('.file-name-input') as HTMLInputElement;
+    const mediaButton = document.getElementById('mediaButton') as HTMLElement;
+
+    if (postId) {
+      post = await getPost(parseInt(postId));
+    }
+
+    if (post) {
+      titleInput.value = post.title || '';
+      fileNameInput.value = post.filename || '';
+      mediaButton.textContent = post.filetype?.toUpperCase() || 'MEDIA';
+    }
+
     // Initialize Editor.js
     const editor = new EditorJS({
       holder: 'editor',
       tools: {
         header: Header,
         list: List,
-        paragraph: {
-          class: Paragraph,
-          inlineToolbar: true,
-        },
-        image: {
-          class: Image,
-          config: {
-            endpoints: {
-              byFile: 'http://localhost:8008/uploadFile',
-              byUrl: 'http://localhost:8008/fetchUrl',
-            }
-          }
-        },
+        paragraph: Paragraph,
+        image: Image,
         embed: Embed,
         quote: Quote,
         checklist: Checklist,
         code: CodeTool,
         table: Table,
       },
-      data: {
+      data: post ? JSON.parse(post.post) : {
         blocks: [
           {
             type: 'paragraph',
@@ -105,7 +118,6 @@ import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
     });
 
     // Bottom Sheet functionality
-    const mediaButton = document.getElementById('mediaButton');
     const bottomSheet = document.getElementById('bottomSheet');
     const sheetContent = bottomSheet?.querySelector('.bottom-sheet-content');
 
@@ -155,14 +167,10 @@ import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
     metadataButton?.addEventListener('click', toggleMetaSidePanel);
     closeMetaPanel?.addEventListener('click', toggleMetaSidePanel);
 
-    // Add event listener for the publish button
+    // Update the publish button event listener
     const publishButton = document.querySelector('.publish-button');
     if (publishButton) {
       publishButton.addEventListener('click', async () => {
-        const titleInput = document.querySelector('.title-input') as HTMLInputElement;
-        const fileNameInput = document.querySelector('.file-name-input') as HTMLInputElement;
-        const mediaButton = document.getElementById('mediaButton') as HTMLElement;
-
         const editorData = await editor.save();
 
         const postData = {
@@ -178,11 +186,21 @@ import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
         };
 
         try {
-          const postId = await createPost(postData);
-          console.log('Post created with ID:', postId);
-          // Optionally, redirect to a success page or clear the form
+          if (postId) {
+            await updatePost(parseInt(postId), postData);
+            console.log('Post updated successfully');
+          } else {
+            const newPostId = await createPost(postData);
+            console.log('Post created with ID:', newPostId);
+          }
+          // Close the modal and refresh the post list
+          const modal = document.getElementById('postCompModal');
+          if (modal) {
+            modal.classList.add('hidden');
+          }
+          window.location.reload();
         } catch (error) {
-          console.error('Error creating post:', error);
+          console.error('Error saving post:', error);
         }
       });
     }
