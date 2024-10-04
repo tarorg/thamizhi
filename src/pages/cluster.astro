@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import BottomMenu from '../components/menu.astro';
+import PostComp from '../components/postcomp.astro';
 ---
 
 <Layout title="CLUSTER">
@@ -26,6 +27,13 @@ import BottomMenu from '../components/menu.astro';
 	</main>
 	<button class="fab-add" id="fabAdd">+</button>
 	<BottomMenu />
+
+	<!-- PostComp modal -->
+	<div id="postCompModal" class="modal hidden">
+		<div class="modal-content">
+			<PostComp />
+		</div>
+	</div>
 </Layout>
 
 <script>
@@ -57,11 +65,19 @@ import BottomMenu from '../components/menu.astro';
 		});
 
 		const fabAdd = document.getElementById('fabAdd');
-		if (fabAdd) {
+		const postCompModal = document.getElementById('postCompModal');
+		if (fabAdd && postCompModal) {
 			fabAdd.addEventListener('click', () => {
-				window.location.href = '/post';
+				postCompModal.classList.remove('hidden');
 			});
 		}
+
+		// Close modal when clicking outside
+		postCompModal?.addEventListener('click', (e) => {
+			if (e.target === postCompModal) {
+				postCompModal.classList.add('hidden');
+			}
+		});
 	});
 </script>
 
@@ -160,5 +176,38 @@ import BottomMenu from '../components/menu.astro';
 	}
 	.post-item:last-child {
 		border-bottom: none;
+	}
+	
+	.modal {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.modal-content {
+		width: 100%;
+		height: 100%;
+		overflow-y: auto;
+		background-color: white;
+	}
+
+	.modal.hidden {
+		display: none;
+	}
+
+	@media (min-width: 768px) {
+		.modal-content {
+			width: 80%;
+			height: 90%;
+			max-width: 1200px;
+			border-radius: 8px;
+		}
 	}
 </style>
