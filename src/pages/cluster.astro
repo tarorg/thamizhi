@@ -1,13 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import BottomMenu from '../components/menu.astro';
-
-const sections = [
-  { title: "THAMIZHI", items: [] },
-  { title: "FEED", items: [] },
-  { title: "I", items: [] },
-  { title: "CLUSTERS", items: [] },
-];
 ---
 
 <Layout title="CLUSTER">
@@ -20,25 +13,16 @@ const sections = [
 		<div class="filter-section">
 			<button class="filter-option active">Collections</button>
 			<button class="filter-option">Clusters</button>
+			<button class="filter-option">Posts</button>
 			<button class="filter-option">Read</button>
 		</div>
 		
-		{sections.map((section, index) => (
-			<div class="section">
-				<div class="section-title">{section.title}</div>
-				{section.items.map((item) => (
-					<div class="section-item">{item}</div>
-				))}
-				{index < sections.length - 1 && <div class="line"></div>}
-			</div>
-		))}
+		<div class="content-section">
+			<!-- Content will be dynamically loaded here based on the selected filter -->
+		</div>
 		
 	</main>
-	<button class="fab-add" id="fabAdd">
-		<svg viewBox="0 0 24 24" width="24" height="24">
-			<path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-		</svg>
-	</button>
+	<button class="fab-add" id="fabAdd">+</button>
 	<BottomMenu />
 </Layout>
 
@@ -78,6 +62,7 @@ const sections = [
 		display: flex;
 		justify-content: space-between;
 		margin-bottom: 30px;
+		flex-wrap: wrap;
 	}
 	.filter-option {
 		background: none;
@@ -88,23 +73,15 @@ const sections = [
 		padding: 8px 16px;
 		border-radius: 20px;
 		transition: all 0.3s ease;
+		margin-bottom: 10px;
 	}
 	.filter-option.active {
 		background-color: #000000;
 		color: white;
 	}
-	.section {
-		margin-bottom: 20px;
-	}
-	.section-title {
-		font-size: 20px;
-		font-weight: 700;
-		margin-bottom: 10px;
-	}
-	.section-item {
-		font-size: 16px;
-		margin-bottom: 8px;
-		color: #333;
+	.content-section {
+		max-height: calc(100vh - 200px);
+		overflow-y: auto;
 	}
 	.fab-add {
 		position: fixed;
@@ -122,6 +99,7 @@ const sections = [
 		cursor: pointer;
 		transition: background-color 0.3s, transform 0.2s;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		font-size: 24px;
 	}
 	.fab-add:hover {
 		background-color: #333333;
@@ -138,6 +116,7 @@ const sections = [
 		option.addEventListener('click', () => {
 			filterOptions.forEach(btn => btn.classList.remove('active'));
 			option.classList.add('active');
+			// Here you can add logic to load content based on the selected filter
 		});
 	});
 

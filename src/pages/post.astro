@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Menu from '../components/menu.astro';
+import Meta from '../components/meta.astro';
 ---
 
 <Layout title="Post">
@@ -40,6 +41,14 @@ import Menu from '../components/menu.astro';
         <div class="bottom-sheet-option" data-option="Pdf">PDF</div>
       </div>
     </div>
+  </div>
+
+  <!-- Meta Side Panel -->
+  <div id="metaSidePanel" class="meta-side-panel hidden">
+    <div class="meta-header">
+      <span class="close-icon" id="closeMetaPanel">&times;</span>
+    </div>
+    <Meta />
   </div>
 </Layout>
 
@@ -81,7 +90,16 @@ import Menu from '../components/menu.astro';
         code: CodeTool,
         table: Table,
       },
-      data: {},
+      data: {
+        blocks: [
+          {
+            type: 'paragraph',
+            data: {
+              text: 'Start writing your post here...'
+            }
+          }
+        ]
+      },
     });
 
     // Bottom Sheet functionality
@@ -115,11 +133,6 @@ import Menu from '../components/menu.astro';
     options?.forEach(option => {
       option.addEventListener('click', () => {
         const selectedOption = option.getAttribute('data-option');
-        // Remove this line to prevent changing the file name input
-        // const fileNameInput = document.querySelector('.file-name-input') as HTMLInputElement;
-        // if (fileNameInput && selectedOption) {
-        //   fileNameInput.placeholder = `Enter ${selectedOption.toLowerCase()} name...`;
-        // }
         if (mediaButton && selectedOption) {
           mediaButton.textContent = selectedOption.toUpperCase();
         }
@@ -127,13 +140,18 @@ import Menu from '../components/menu.astro';
       });
     });
 
-    // Add event listener for metadata button
+    // Meta Side Panel functionality
     const metadataButton = document.getElementById('metadataButton');
-    if (metadataButton) {
-      metadataButton.addEventListener('click', () => {
-        window.location.href = '/metadata';
-      });
+    const metaSidePanel = document.getElementById('metaSidePanel');
+    const closeMetaPanel = document.getElementById('closeMetaPanel');
+
+    function toggleMetaSidePanel() {
+      metaSidePanel?.classList.toggle('hidden');
+      metaSidePanel?.classList.toggle('visible');
     }
+
+    metadataButton?.addEventListener('click', toggleMetaSidePanel);
+    closeMetaPanel?.addEventListener('click', toggleMetaSidePanel);
   });
 </script>
 
@@ -147,11 +165,13 @@ import Menu from '../components/menu.astro';
 
   .main-container {
     position: relative;
-    width: 360px;
-    height: 640px;
+    width: 100%;
+    height: 100vh;
     margin: 0 auto;
     background: #ffffff;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .icons-asterisk {
@@ -308,17 +328,14 @@ import Menu from '../components/menu.astro';
   }
 
   .post-section {
-    position: absolute;
-    top: 117px; /* Adjust this value to be just below line-2 */
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 20px;
+    flex: 1;
     overflow-y: auto;
+    padding: 20px;
   }
 
   #editor {
     height: 100%;
+    min-height: 200px; /* Add this line to ensure a minimum height */
   }
 
   /* Add these new styles for the bottom sheet */
@@ -370,4 +387,56 @@ import Menu from '../components/menu.astro';
   .bottom-sheet.visible .bottom-sheet-content {
     transform: translateY(0);
   }
+
+  /* Add these new styles for the meta side panel */
+  .meta-side-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: white;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .meta-side-panel.visible {
+    transform: translateX(0);
+  }
+
+  .meta-side-panel.hidden {
+    transform: translateX(100%);
+  }
+
+  .meta-header {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 1001;
+  }
+
+  .close-icon {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+
+  .close-icon:hover {
+    color: #333;
+  }
+
+  /* Remove this style as it's no longer needed */
+  /* .meta-side-panel.visible + .main-container {
+    margin-right: 360px;
+  } */
 </style>
