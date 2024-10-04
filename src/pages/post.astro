@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Menu from '../components/menu.astro';
 import Meta from '../components/meta.astro';
+import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
 ---
 
 <Layout title="Post">
@@ -63,6 +64,7 @@ import Meta from '../components/meta.astro';
   import Checklist from '@editorjs/checklist';
   import CodeTool from '@editorjs/code';
   import Table from '@editorjs/table';
+  import { createPost, updatePost, getPost } from '../utils/indexedDB.js';
 
   document.addEventListener('DOMContentLoaded', () => {
     // Initialize Editor.js
@@ -152,6 +154,38 @@ import Meta from '../components/meta.astro';
 
     metadataButton?.addEventListener('click', toggleMetaSidePanel);
     closeMetaPanel?.addEventListener('click', toggleMetaSidePanel);
+
+    // Add event listener for the publish button
+    const publishButton = document.querySelector('.publish-button');
+    if (publishButton) {
+      publishButton.addEventListener('click', async () => {
+        const titleInput = document.querySelector('.title-input') as HTMLInputElement;
+        const fileNameInput = document.querySelector('.file-name-input') as HTMLInputElement;
+        const mediaButton = document.getElementById('mediaButton') as HTMLElement;
+
+        const editorData = await editor.save();
+
+        const postData = {
+          title: titleInput.value,
+          filename: fileNameInput.value,
+          filetype: mediaButton.textContent?.toLowerCase() || '',
+          url: '', // You'll need to implement file upload and get the URL
+          post: JSON.stringify(editorData),
+          collection: '', // Get this from the metadata side panel
+          cluster: '', // Get this from the metadata side panel
+          tags: '', // Get this from the metadata side panel
+          notes: '', // Get this from the metadata side panel
+        };
+
+        try {
+          const postId = await createPost(postData);
+          console.log('Post created with ID:', postId);
+          // Optionally, redirect to a success page or clear the form
+        } catch (error) {
+          console.error('Error creating post:', error);
+        }
+      });
+    }
   });
 </script>
 

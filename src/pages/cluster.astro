@@ -18,13 +18,52 @@ import BottomMenu from '../components/menu.astro';
 		</div>
 		
 		<div class="content-section">
-			<!-- Content will be dynamically loaded here based on the selected filter -->
+			<ul class="post-list" id="postList">
+				<!-- Posts will be populated here by JavaScript -->
+			</ul>
 		</div>
 		
 	</main>
 	<button class="fab-add" id="fabAdd">+</button>
 	<BottomMenu />
 </Layout>
+
+<script>
+	import { getAllPosts } from '../utils/indexedDB.js';
+
+	document.addEventListener('DOMContentLoaded', async () => {
+		try {
+			const posts = await getAllPosts();
+			const postList = document.getElementById('postList');
+			if (postList) {
+				posts.forEach((post) => {
+					const li = document.createElement('li');
+					li.className = 'post-item';
+					li.textContent = post.title;
+					postList.appendChild(li);
+				});
+			}
+		} catch (error) {
+			console.error('Error fetching posts:', error);
+		}
+
+		const filterOptions = document.querySelectorAll('.filter-option');
+		filterOptions.forEach(option => {
+			option.addEventListener('click', () => {
+				filterOptions.forEach(btn => btn.classList.remove('active'));
+				option.classList.add('active');
+				// Here you can add logic to filter content based on the selected filter
+			});
+		});
+
+		const fabAdd = document.getElementById('fabAdd');
+		if (fabAdd) {
+			fabAdd.addEventListener('click', () => {
+				window.location.href = '/post';
+			});
+		}
+	});
+</script>
 
 <style>
 	.container {
@@ -108,22 +147,18 @@ import BottomMenu from '../components/menu.astro';
 	.fab-add:active {
 		transform: scale(0.95);
 	}
-</style>
-
-<script>
-	const filterOptions = document.querySelectorAll('.filter-option');
-	filterOptions.forEach(option => {
-		option.addEventListener('click', () => {
-			filterOptions.forEach(btn => btn.classList.remove('active'));
-			option.classList.add('active');
-			// Here you can add logic to load content based on the selected filter
-		});
-	});
-
-	const fabAdd = document.getElementById('fabAdd');
-	if (fabAdd) {
-		fabAdd.addEventListener('click', () => {
-			window.location.href = '/post';
-		});
+	.post-list {
+		list-style-type: none;
+		padding: 0;
+		margin: 0;
 	}
-</script>
+	.post-item {
+		padding: 15px 0;
+		border-bottom: 1px solid #e0e0e0;
+		font-size: 16px;
+		color: #333;
+	}
+	.post-item:last-child {
+		border-bottom: none;
+	}
+</style>
