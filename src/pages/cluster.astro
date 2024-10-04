@@ -38,6 +38,11 @@ import BottomMenu from '../components/menu.astro';  // Updated import
 			<div class="section-title">CLUSTERS</div>
 		</div>
 	</main>
+	<button class="fab-add" id="fabAdd">
+		<svg viewBox="0 0 24 24" width="24" height="24">
+			<path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+		</svg>
+	</button>
 	<BottomMenu />
 </Layout>
 
@@ -111,6 +116,28 @@ import BottomMenu from '../components/menu.astro';  // Updated import
 		border-top: 1px solid #000;
 		margin: 20px 0;
 	}
+	.fab-add {
+		position: fixed;
+		bottom: 80px;
+		right: 20px;
+		width: 56px;
+		height: 56px;
+		border-radius: 28px;
+		background-color: #f0f0f0;
+		color: #333333;
+		border: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		transition: background-color 0.3s;
+	}
+	.fab-add:hover {
+		background-color: #e0e0e0;
+	}
+	.fab-add:active {
+		background-color: #d0d0d0;
+	}
 </style>
 
 <script>
@@ -121,4 +148,12 @@ import BottomMenu from '../components/menu.astro';  // Updated import
 			option.classList.add('active');
 		});
 	});
+
+	// Add event listener for FAB button
+	const fabAdd = document.getElementById('fabAdd');
+	if (fabAdd) {
+		fabAdd.addEventListener('click', () => {
+			window.location.href = '/post';
+		});
+	}
 </script>

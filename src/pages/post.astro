@@ -7,14 +7,14 @@ import Menu from '../components/menu.astro';
   <main class="main-container">
     <!-- 1. Title Section -->
     <div class="title-section">
-      <input type="text" class="title-input" placeholder="Enter title...">
-      <span class="title-icon">M</span>
+      <input type="text" class="title-input" placeholder="Title">
+      <span class="title-icon" id="metadataButton">M</span>
     </div>
     <div class="line-1"></div>
 
     <!-- 2. Upload Section -->
     <div class="upload-section">
-      <input type="text" class="file-name-input" placeholder="Enter file name...">
+      <input type="text" class="file-name-input" placeholder="File name">
       <span class="media-text" id="mediaButton">MEDIA</span>
     </div>
     <div class="line-2"></div>
@@ -30,7 +30,6 @@ import Menu from '../components/menu.astro';
   <!-- Bottom Sheet -->
   <div id="bottomSheet" class="bottom-sheet hidden">
     <div class="bottom-sheet-content">
-      <h3 class="bottom-sheet-title">Select File Type</h3>
       <div class="bottom-sheet-options">
         <div class="bottom-sheet-option" data-option="Image">Image</div>
         <div class="bottom-sheet-divider"></div>
@@ -39,9 +38,6 @@ import Menu from '../components/menu.astro';
         <div class="bottom-sheet-option" data-option="Audio">Audio</div>
         <div class="bottom-sheet-divider"></div>
         <div class="bottom-sheet-option" data-option="Pdf">PDF</div>
-      </div>
-      <div class="bottom-sheet-footer">
-        <button id="closeBottomSheet" class="bottom-sheet-cancel">Cancel</button>
       </div>
     </div>
   </div>
@@ -91,42 +87,53 @@ import Menu from '../components/menu.astro';
     // Bottom Sheet functionality
     const mediaButton = document.getElementById('mediaButton');
     const bottomSheet = document.getElementById('bottomSheet');
-    const sheetContent = bottomSheet.querySelector('div');
-    const closeBottomSheetButton = document.getElementById('closeBottomSheet');
+    const sheetContent = bottomSheet?.querySelector('.bottom-sheet-content');
 
     function openBottomSheet() {
-      bottomSheet.classList.remove('hidden');
+      bottomSheet?.classList.remove('hidden');
       setTimeout(() => {
-        bottomSheet.classList.add('visible');
+        bottomSheet?.classList.add('visible');
       }, 10);
     }
 
     function closeBottomSheet() {
-      bottomSheet.classList.remove('visible');
+      bottomSheet?.classList.remove('visible');
       setTimeout(() => {
-        bottomSheet.classList.add('hidden');
+        bottomSheet?.classList.add('hidden');
       }, 300);
     }
 
-    mediaButton.addEventListener('click', openBottomSheet);
+    mediaButton?.addEventListener('click', openBottomSheet);
 
-    bottomSheet.addEventListener('click', (e) => {
+    bottomSheet?.addEventListener('click', (e) => {
       if (e.target === bottomSheet) {
         closeBottomSheet();
       }
     });
 
-    closeBottomSheetButton.addEventListener('click', closeBottomSheet);
-
-    const options = sheetContent.querySelectorAll('[data-option]');
-    options.forEach(option => {
+    const options = sheetContent?.querySelectorAll('[data-option]');
+    options?.forEach(option => {
       option.addEventListener('click', () => {
         const selectedOption = option.getAttribute('data-option');
-        document.querySelector('.file-name-input').placeholder = `Enter ${selectedOption.toLowerCase()} name...`;
-        mediaButton.textContent = selectedOption.toUpperCase();
+        // Remove this line to prevent changing the file name input
+        // const fileNameInput = document.querySelector('.file-name-input') as HTMLInputElement;
+        // if (fileNameInput && selectedOption) {
+        //   fileNameInput.placeholder = `Enter ${selectedOption.toLowerCase()} name...`;
+        // }
+        if (mediaButton && selectedOption) {
+          mediaButton.textContent = selectedOption.toUpperCase();
+        }
         closeBottomSheet();
       });
     });
+
+    // Add event listener for metadata button
+    const metadataButton = document.getElementById('metadataButton');
+    if (metadataButton) {
+      metadataButton.addEventListener('click', () => {
+        window.location.href = '/metadata';
+      });
+    }
   });
 </script>
 
@@ -256,6 +263,7 @@ import Menu from '../components/menu.astro';
     top: 0;
     font-size: 24px;
     font-weight: 700;
+    cursor: pointer; /* Add this to indicate it's clickable */
   }
 
   .upload-section {
@@ -332,21 +340,16 @@ import Menu from '../components/menu.astro';
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
     padding: 24px;
+    padding-bottom: 48px; /* Increased bottom padding */
     width: 100%;
     max-height: 80vh;
     transform: translateY(100%);
     transition: transform 0.3s ease-in-out;
   }
 
-  .bottom-sheet-title {
-    font-size: 24px;
-    font-weight: 600;
-    margin-bottom: 24px;
-  }
-
   .bottom-sheet-options {
     overflow-y: auto;
-    max-height: calc(80vh - 180px);
+    max-height: calc(80vh - 72px); /* Adjusted for increased bottom padding */
   }
 
   .bottom-sheet-option {
@@ -362,21 +365,6 @@ import Menu from '../components/menu.astro';
   .bottom-sheet-divider {
     height: 1px;
     background-color: #e5e7eb;
-  }
-
-  .bottom-sheet-footer {
-    margin-top: 24px;
-  }
-
-  .bottom-sheet-cancel {
-    width: 100%;
-    background-color: #e5e7eb;
-    color: #1f2937;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
   }
 
   .bottom-sheet.visible .bottom-sheet-content {
