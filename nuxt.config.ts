@@ -8,7 +8,9 @@ export default defineNuxtConfig({
     'shadcn-nuxt'
   ],
   colorMode: {
-    classSuffix: ''
+    classSuffix: '',
+    preference: 'light',
+    fallback: 'light',
   },
   tailwindcss: {
     // your tailwind config here

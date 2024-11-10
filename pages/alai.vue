@@ -16,10 +16,10 @@ const posts = ref([
 
 <template>
   <div class="container mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-6">அலை - Mastodon Feed</h1>
+    <h1 class="text-2xl font-bold mb-6 text-foreground">அலை - Mastodon Feed</h1>
     
     <div class="space-y-4">
-      <Card v-for="post in posts" :key="post.id">
+      <Card v-for="post in posts" :key="post.id" class="bg-card">
         <CardHeader>
           <div class="flex items-center gap-4">
             <Avatar>
@@ -27,13 +27,13 @@ const posts = ref([
               <AvatarFallback>TH</AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle class="text-lg">{{ post.author }}</CardTitle>
+              <CardTitle class="text-lg text-card-foreground">{{ post.author }}</CardTitle>
               <span class="text-sm text-muted-foreground">{{ post.timestamp }}</span>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <p>{{ post.content }}</p>
+          <p class="text-foreground">{{ post.content }}</p>
         </CardContent>
       </Card>
     </div>

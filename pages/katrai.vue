@@ -17,18 +17,18 @@ const collections = ref([
 
 <template>
   <div class="container mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-6">கற்றல் - Collections</h1>
+    <h1 class="text-2xl font-bold mb-6 text-foreground">கற்றல் - Collections</h1>
     
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="collection in collections" :key="collection.id">
+      <Card v-for="collection in collections" :key="collection.id" class="bg-card">
         <CardHeader>
-          <CardTitle>{{ collection.title }}</CardTitle>
+          <CardTitle class="text-card-foreground">{{ collection.title }}</CardTitle>
         </CardHeader>
         <CardContent>
           <p class="text-muted-foreground mb-4">{{ collection.description }}</p>
           <ul class="space-y-2">
             <li v-for="post in collection.posts" :key="post.id" 
-              class="text-sm hover:text-primary cursor-pointer">
+              class="text-sm hover:text-primary cursor-pointer text-foreground">
               {{ post.title }}
             </li>
           </ul>

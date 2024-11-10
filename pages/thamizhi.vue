@@ -31,7 +31,9 @@ function sendMessage() {
       <div class="space-y-4">
         <Card v-for="(message, i) in messages" :key="i" 
           :class="[
-            message.role === 'assistant' ? 'bg-secondary' : 'bg-primary text-primary-foreground'
+            message.role === 'assistant' 
+              ? 'bg-secondary text-secondary-foreground' 
+              : 'bg-primary text-primary-foreground'
           ]">
           <CardContent class="p-4">
             {{ message.content }}
@@ -44,7 +46,7 @@ function sendMessage() {
       <div class="flex gap-2">
         <textarea 
           v-model="newMessage"
-          class="flex-1 rounded-md border p-2"
+          class="flex-1 rounded-md border p-2 text-foreground bg-background"
           placeholder="Type your message..."
           rows="1"
           @keydown.enter.prevent="sendMessage"

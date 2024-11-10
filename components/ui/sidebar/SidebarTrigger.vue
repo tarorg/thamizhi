@@ -1,26 +1,27 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from 'vue'
-import Button from '@/components/ui/button/Button.vue'
-import { cn } from '@/lib/utils'
-import { PanelLeft } from 'lucide-vue-next'
 import { useSidebar } from './utils'
+import { Asterisk } from 'lucide-vue-next'
 
-const props = defineProps<{
-  class?: HTMLAttributes['class']
-}>()
-
-const { toggleSidebar } = useSidebar()
+const { toggleSidebar, state } = useSidebar()
 </script>
 
 <template>
-  <Button
-    data-sidebar="trigger"
-    variant="ghost"
-    size="icon"
-    :class="cn('h-7 w-7', props.class)"
-    @click="toggleSidebar"
-  >
-    <PanelLeft />
-    <span class="sr-only">Toggle Sidebar</span>
-  </Button>
+  <SidebarHeader>
+    <div 
+      class="flex items-center cursor-pointer hover:text-primary transition-colors p-2"
+      @click="toggleSidebar"
+    >
+      <div :class="[
+        'text-foreground flex items-center justify-center',
+        state === 'expanded' ? 'h-8 w-8' : 'h-8 w-8'
+      ]">
+        <Asterisk class="h-6 w-6" />
+      </div>
+      <h2 
+        class="text-lg font-semibold text-foreground group-data-[collapsible=icon]:hidden"
+      >
+        தமிழி
+      </h2>
+    </div>
+  </SidebarHeader>
 </template>
