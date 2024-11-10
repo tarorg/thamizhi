@@ -17,7 +17,6 @@ const collections = ref([
 
 <template>
   <div class="container mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-6 text-foreground">கற்றல் - Collections</h1>
     
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <Card v-for="collection in collections" :key="collection.id" class="bg-card">
