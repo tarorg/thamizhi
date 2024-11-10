@@ -8,7 +8,7 @@ const { toggleSidebar, state } = useSidebar()
 <template>
   <SidebarHeader>
     <div 
-      class="flex items-center cursor-pointer hover:text-primary transition-colors p-2"
+      class="flex items-center cursor-pointer hover:text-primary transition-colors"
       @click="toggleSidebar"
     >
       <div :class="[

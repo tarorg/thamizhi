@@ -64,11 +64,11 @@ const navigate = (path: string) => {
           <SidebarMenuButton 
             @click="navigate('/katrai')"
             :is-active="route.path === '/katrai'"
-            tooltip="கற்றல்"
+            tooltip="கற்றை"
             class="text-foreground"
           >
             <Library class="text-foreground" />
-            <span>கற்றல்</span>
+            <span>கற்றை</span>
           </SidebarMenuButton>
         </SidebarMenu>
       </SidebarContent>
