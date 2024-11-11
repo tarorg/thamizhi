@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue 
 } from '@/components/ui/select'
-import PostDrawer from '@/components/ui/drawer/PostDrawer.vue'
+import PublishPanel from '@/components/ui/drawer/PublishPanel.vue'
 import { 
   Sheet, 
   SheetContent, 
@@ -236,7 +236,7 @@ const toggleDrawer = () => {
     </div>
 
     <!-- Settings Drawer -->
-    <PostDrawer 
+    <PublishPanel 
       v-model="isDrawerOpen" 
       :open="isDrawerOpen"
       @update:open="isDrawerOpen = $event"
