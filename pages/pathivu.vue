@@ -118,9 +118,9 @@ const toggleDrawer = () => {
 <template>
   <div class="container mx-auto">
     <!-- Row layout with responsive changes -->
-    <div class="grid lg:grid-cols-[100px_120px_1fr_50px] grid-cols-[80px_80px_1fr] bg-background border-b border-zinc-200">
+    <div class="grid lg:grid-cols-[50px_120px_1fr_50px] grid-cols-[50px_80px_1fr] bg-background border-b border-zinc-200">
       <!-- Cell 1: Square Thumbnail -->
-      <div class="relative lg:h-[100px] h-[80px] lg:w-[100px] w-[80px] border-r border-zinc-200">
+      <div class="relative h-[50px] w-[50px] border-r border-zinc-200">
         <input
           type="file"
           accept="image/*"
@@ -132,18 +132,18 @@ const toggleDrawer = () => {
             <img :src="post.thumbnailUrl" class="w-full h-full object-cover" />
           </div>
           <div v-else class="text-center">
-            <PlusIcon class="w-6 h-6 text-muted-foreground" />
+            <PlusIcon class="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
       </div>
 
       <!-- Cell 2: Media Type -->
-      <div class="border-r border-zinc-200 lg:h-[100px] h-[80px]">
+      <div class="border-r border-zinc-200 h-[50px]">
         <Sheet>
           <SheetTrigger class="w-full h-full px-3 flex items-center justify-center lg:justify-start gap-2 hover:bg-muted/5">
             <component 
               :is="mediaTypes.find(t => t.value === post.type)?.icon || FileTextIcon"
-              class="w-5 h-5"
+              class="w-4 h-4"
             />
             <span class="text-sm text-muted-foreground lg:inline hidden">{{ 
               mediaTypes.find(t => t.value === post.type)?.label || 'Article'
@@ -172,12 +172,12 @@ const toggleDrawer = () => {
       <!-- Cell 3 (Mobile): Right Arrow with grey background -->
       <button 
         @click="toggleDrawer"
-        class="lg:hidden flex h-[80px] items-center justify-center bg-muted/5 transition-colors"
+        class="lg:hidden flex h-[50px] items-center justify-center bg-muted/5 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -190,11 +190,11 @@ const toggleDrawer = () => {
       </button>
 
       <!-- Cell 3 (Desktop): Title -->
-      <div class="px-3 border-r border-zinc-200 lg:flex hidden items-center h-[100px]">
+      <div class="px-3 border-r border-zinc-200 lg:flex hidden items-center h-[50px]">
         <input
           v-model="post.title"
           type="text"
-          class="w-full h-[50px] bg-transparent outline-none placeholder:text-muted-foreground text-xl font-bold"
+          class="w-full bg-transparent outline-none placeholder:text-muted-foreground text-lg font-bold"
           placeholder="Post title"
         />
       </div>
@@ -202,12 +202,12 @@ const toggleDrawer = () => {
       <!-- Cell 4 (Desktop): Right Arrow -->
       <button 
         @click="toggleDrawer"
-        class="lg:flex hidden h-[100px] w-[50px] items-center justify-center bg-muted/5 hover:bg-muted/10 transition-colors"
+        class="lg:flex hidden h-[50px] w-[50px] items-center justify-center bg-muted/5 hover:bg-muted/10 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
+          width="16"
+          height="16"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -224,7 +224,7 @@ const toggleDrawer = () => {
         <input
           v-model="post.title"
           type="text"
-          class="w-full h-[50px] bg-transparent outline-none placeholder:text-muted-foreground text-xl font-bold"
+          class="w-full bg-transparent outline-none placeholder:text-muted-foreground text-lg font-bold"
           placeholder="Post title"
         />
       </div>
@@ -256,6 +256,7 @@ const toggleDrawer = () => {
   padding: 0 !important;
   margin: 0 !important;
   position: relative !important;
+  margin-top: 2rem !important;
 }
 
 /* Content block styles */
