@@ -11,6 +11,17 @@ defineProps<{
 defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
+
+// Add reactive state for form data
+const formData = ref({
+  collection: '',
+  slug: '',
+  tags: '',
+  status: 'draft',
+  authors: '',
+  publishDate: '',
+  excerpt: ''
+})
 </script>
 
 <template>
@@ -35,14 +46,9 @@ defineEmits<{
             >
               <ArrowLeftIcon class="h-4 w-4" />
             </Button>
-            <div class="flex gap-2">
-              <Button variant="outline" size="sm">
-                Save Draft
-              </Button>
-              <Button size="sm">
-                Publish
-              </Button>
-            </div>
+            <Button size="sm">
+              Publish
+            </Button>
           </div>
         </SheetHeader>
         
@@ -57,31 +63,100 @@ defineEmits<{
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="meta" class="mt-4 space-y-4">
-            <div class="space-y-4">
-              <div class="space-y-2">
-                <label class="text-sm font-medium">Description</label>
-                <textarea 
-                  rows="3" 
-                  class="w-full p-2 bg-muted/5 rounded-md resize-none"
-                  placeholder="Add a description..."
-                />
+          <TabsContent value="meta" class="mt-4">
+            <div class="divide-y">
+              <!-- Collection -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Collection</div>
+                <div class="w-2/3">
+                  <select 
+                    v-model="formData.collection"
+                    class="w-full bg-transparent text-sm"
+                  >
+                    <option value="">Select collection...</option>
+                    <option value="blog">Blog</option>
+                    <option value="docs">Documentation</option>
+                  </select>
+                </div>
               </div>
-              <div class="space-y-2">
-                <label class="text-sm font-medium">Tags</label>
-                <input 
-                  type="text" 
-                  class="w-full p-2 bg-muted/5 rounded-md"
-                  placeholder="Add tags..."
-                />
+
+              <!-- Slug -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Slug</div>
+                <div class="w-2/3">
+                  <input 
+                    v-model="formData.slug"
+                    type="text" 
+                    class="w-full bg-transparent text-sm"
+                    placeholder="Enter URL slug..."
+                  />
+                </div>
               </div>
-              <div class="space-y-2">
-                <label class="text-sm font-medium">Status</label>
-                <select class="w-full p-2 bg-muted/5 rounded-md">
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
-                </select>
+
+              <!-- Tags -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Tags</div>
+                <div class="w-2/3">
+                  <input 
+                    v-model="formData.tags"
+                    type="text" 
+                    class="w-full bg-transparent text-sm"
+                    placeholder="Add tags..."
+                  />
+                </div>
+              </div>
+
+              <!-- Status -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Status</div>
+                <div class="w-2/3">
+                  <select 
+                    v-model="formData.status"
+                    class="w-full bg-transparent text-sm"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Authors -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Authors</div>
+                <div class="w-2/3">
+                  <input 
+                    v-model="formData.authors"
+                    type="text" 
+                    class="w-full bg-transparent text-sm"
+                    placeholder="Add authors..."
+                  />
+                </div>
+              </div>
+
+              <!-- Publish Date -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Publish Date</div>
+                <div class="w-2/3">
+                  <input 
+                    v-model="formData.publishDate"
+                    type="datetime-local" 
+                    class="w-full bg-transparent text-sm"
+                  />
+                </div>
+              </div>
+
+              <!-- Excerpt -->
+              <div class="flex py-4">
+                <div class="w-1/3 text-sm text-muted-foreground">Excerpt</div>
+                <div class="w-2/3">
+                  <textarea 
+                    v-model="formData.excerpt"
+                    rows="3" 
+                    class="w-full bg-transparent text-sm resize-none"
+                    placeholder="Add a brief excerpt..."
+                  />
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -111,13 +186,13 @@ defineEmits<{
 </template>
 
 <style scoped>
-.sheet-content {
-  @apply p-6;
+/* Input and select styles */
+input, select, textarea {
+  @apply outline-none border-none focus:ring-0;
 }
 
-/* Target the parent sheet container */
-:deep(.fixed) > button,
-:deep(.sheet-overlay) + button {
-  display: none !important;
+/* Hover effect for rows */
+.divide-y > div {
+  @apply hover:bg-muted/5 -mx-6 px-6 transition-colors;
 }
 </style> 
