@@ -24,6 +24,14 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'cloudflare-pages',
+    prerender: {
+      crawlLinks: true,
+      routes: [
+        '/',
+        '/katrai',
+        '/pathivu'
+      ]
+    }
   },
   routeRules: {
     // Add caching for static assets
@@ -42,5 +50,9 @@ export default defineNuxtConfig({
         { name: 'description', content: 'Tamil Literature Platform' }
       ]
     }
+  },
+  ssr: true,
+  experimental: {
+    payloadExtraction: false
   }
 })
