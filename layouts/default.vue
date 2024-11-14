@@ -43,8 +43,8 @@ const navigate = (path: string) => {
       <SidebarContent>
         <SidebarMenu>
           <SidebarMenuButton 
-            @click="navigate('/alai')"
-            :is-active="route.path === '/alai'"
+            @click="navigate('/')"
+            :is-active="route.path === '/'"
             tooltip="அலை"
             class="text-foreground"
           >
