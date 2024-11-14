@@ -21,5 +21,26 @@ export default defineNuxtConfig({
   },
   build: {
     transpile: ['@editorjs/editorjs'],
+  },
+  nitro: {
+    preset: 'cloudflare-pages',
+  },
+  routeRules: {
+    // Add caching for static assets
+    '/assets/**': {
+      headers: {
+        'cache-control': 'public, max-age=31536000, immutable'
+      }
+    },
+  },
+  app: {
+    head: {
+      title: 'தமிழி',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'description', content: 'Tamil Literature Platform' }
+      ]
+    }
   }
 })
