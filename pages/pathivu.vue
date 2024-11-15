@@ -31,6 +31,14 @@ interface EditorData {
   }>
 }
 
+// Update the interface to include file info
+interface UploadResponse {
+  url: string
+  file: File
+  type: string
+  name: string
+}
+
 const post = ref({
   thumbnail: null as File | null,
   thumbnailUrl: '',
@@ -125,6 +133,27 @@ const handleTypeSelect = (type: string) => {
 }
 
 const isSheetOpen = ref(false)
+
+// Add new ref for preview URL
+const previewUrl = ref('')
+
+// Modify the upload complete handler
+const handleUploadComplete = (response: UploadResponse) => {
+  post.value.asset = response.file
+  previewUrl.value = response.url
+  
+  // For debugging
+  console.log('Upload complete:', {
+    url: response.url,
+    type: response.type,
+    size: response.file.size,
+    name: response.name
+  })
+  
+  if (!['podcast', 'video'].includes(post.value.type)) {
+    isSheetOpen.value = false
+  }
+}
 </script>
 
 <template>
@@ -160,7 +189,7 @@ const isSheetOpen = ref(false)
           </SheetTrigger>
           <SheetContent side="bottom" class="h-[400px]">
             <!-- First show all options -->
-            <div v-if="!['podcast', 'video', 'doc'].includes(post.type)" class="flex flex-col divide-y">
+            <div v-if="!post.asset && !['podcast', 'video', 'doc'].includes(post.type)" class="flex flex-col divide-y">
               <button
                 v-for="type in mediaTypes"
                 :key="type.value"
@@ -173,42 +202,106 @@ const isSheetOpen = ref(false)
               </button>
             </div>
 
-            <!-- Show selected type and upload for media types -->
-            <div v-else class="flex flex-col gap-4 p-4">
+            <!-- Show selected type and upload/preview for media types -->
+            <div v-else-if="['podcast', 'video', 'doc'].includes(post.type)" class="flex flex-col gap-4 p-4">
               <!-- Selected Type Header -->
-              <div class="flex items-center gap-3 pb-4 border-b">
-                <button 
-                  class="hover:bg-muted/5 p-2 rounded-full"
-                  @click="post.type = 'article'"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+              <div class="flex items-center justify-between pb-4 border-b">
+                <div class="flex items-center gap-3">
+                  <button 
+                    class="hover:bg-muted/5 p-2 rounded-full"
+                    @click="post.type = 'article'; post.asset = null; previewUrl = ''"
                   >
-                    <path d="m15 18-6-6 6-6"/>
-                  </svg>
-                </button>
-                <div class="flex items-center gap-2">
-                  <component :is="mediaTypes.find(t => t.value === post.type)?.icon" class="w-5 h-5" />
-                  <span class="text-sm font-medium">
-                    {{ mediaTypes.find(t => t.value === post.type)?.label }}
-                  </span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                  </button>
+                  <div class="flex items-center gap-2">
+                    <component :is="mediaTypes.find(t => t.value === post.type)?.icon" class="w-5 h-5" />
+                    <span class="text-sm font-medium">
+                      {{ mediaTypes.find(t => t.value === post.type)?.label }}
+                    </span>
+                  </div>
                 </div>
+                
+                <!-- Show file size if asset exists -->
+                <span v-if="post.asset" class="text-xs text-muted-foreground">
+                  {{ (post.asset.size / 1024 / 1024).toFixed(2) + ' MB' }}
+                </span>
               </div>
 
-              <!-- Upload Section -->
-              <div class="flex-1">
-                <FileUpload 
-                  :accept="mediaTypes.find(t => t.value === post.type)?.accept"
-                  @upload-complete="(url) => { post.asset = url; isSheetOpen = false; }"
-                />
+              <div class="flex-1 flex flex-col gap-4">
+                <!-- Upload Section when no asset -->
+                <div v-if="!post.asset" class="flex-1">
+                  <FileUpload 
+                    :accept="mediaTypes.find(t => t.value === post.type)?.accept"
+                    @upload-complete="handleUploadComplete"
+                  />
+                </div>
+
+                <!-- Preview Section when asset exists -->
+                <div v-else class="border rounded-lg p-4 bg-muted/5">
+                  <div class="flex items-center justify-between mb-4">
+                    <p class="text-sm font-medium">Preview</p>
+                    <button 
+                      @click="post.asset = null; previewUrl = ''"
+                      class="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Change file
+                    </button>
+                  </div>
+                  
+                  <!-- Audio Preview -->
+                  <audio v-if="post.type === 'podcast'" 
+                    controls 
+                    class="w-full"
+                    :src="previewUrl"
+                    preload="metadata"
+                    type="audio/mpeg"
+                  >
+                    <source :src="previewUrl" type="audio/mpeg">
+                    <source :src="previewUrl" type="audio/mp3">
+                    Your browser does not support the audio element.
+                  </audio>
+
+                  <!-- Video Preview -->
+                  <video v-if="post.type === 'video'" 
+                    controls 
+                    class="w-full rounded-lg"
+                    :src="previewUrl"
+                    preload="metadata"
+                    type="video/mp4"
+                  >
+                    <source :src="previewUrl" type="video/mp4">
+                    <source :src="previewUrl" type="video/webm">
+                    Your browser does not support the video element.
+                  </video>
+
+                  <!-- Document Preview -->
+                  <div v-if="post.type === 'doc'" class="text-center text-sm text-muted-foreground">
+                    <FileIcon class="w-8 h-8 mx-auto mb-2" />
+                    Document uploaded
+                  </div>
+
+                  <!-- Done Button -->
+                  <div class="mt-4 flex justify-end">
+                    <button
+                      @click="isSheetOpen = false"
+                      class="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </SheetContent>
@@ -384,5 +477,36 @@ input:focus {
 .ce-toolbar__plus:hover,
 .ce-toolbar__settings-btn:hover {
   background-color: var(--muted) !important;
+}
+
+/* Add these styles */
+audio {
+  height: 40px;
+  width: 100%;
+  outline: none;
+}
+
+video {
+  max-height: 200px;
+  width: 100%;
+  object-fit: contain;
+  background: black;
+  outline: none;
+}
+
+/* Add custom audio player styles */
+audio::-webkit-media-controls-panel {
+  background-color: #f3f4f6;
+}
+
+audio::-webkit-media-controls-play-button,
+audio::-webkit-media-controls-mute-button {
+  background-color: #fff;
+  border-radius: 50%;
+}
+
+/* Add custom video player styles */
+video::-webkit-media-controls-panel {
+  background-image: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
 }
 </style> 

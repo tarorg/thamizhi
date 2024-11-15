@@ -38,25 +38,36 @@ const handleFileSelect = async (event: Event) => {
     error.value = null
     
     const formData = new FormData()
+    // Add timestamp to filename to prevent caching issues
+    const timestamp = new Date().getTime()
+    const fileName = `${timestamp}-${file.value.name}`
+    formData.append('name', fileName)
     formData.append('file', file.value)
-    formData.append('fileName', file.value.name)
 
-    const response = await fetch('https://files.thamizhnationorg.workers.dev/upload', {
-      method: 'POST',
+    const response = await fetch('https://par.thamizhnationorg.workers.dev/upload', {
+      method: 'PUT',
       body: formData,
-      onUploadProgress: (progressEvent) => {
-        uploadProgress.value = Math.round(
-          (progressEvent.loaded * 100) / (progressEvent.total || 100)
-        )
-      }
     })
 
-    if (!response.ok) throw new Error('Upload failed')
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      throw new Error(errorData?.message || 'Upload failed')
+    }
     
     const data = await response.json()
-    emit('upload-complete', data.url)
+    
+    // Remove the URL verification since it causes CORS issues
+    const fileUrl = `https://pub-0f5bc537cc2f43028e30f936719213e7.r2.dev/${fileName}` // Use the fileName we sent
+
+    emit('upload-complete', {
+      url: fileUrl,
+      file: file.value,
+      type: file.value.type,
+      name: fileName // Add filename to the response
+    })
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Upload failed'
+    console.error('Upload error:', err)
   } finally {
     isUploading.value = false
   }
