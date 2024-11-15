@@ -14,12 +14,14 @@ import {
   SheetTrigger 
 } from '@/components/ui/sheet'
 import { 
-  FileTextIcon, 
+  NewspaperIcon, 
   HeadphonesIcon, 
   VideoIcon, 
   FileIcon,
-  PlusIcon 
+  PlusIcon,
+  FolderIcon
 } from 'lucide-vue-next'
+import FileUpload from '@/components/ui/upload/FileUpload.vue'
 
 // Define the type for EditorJS data
 interface EditorData {
@@ -79,10 +81,11 @@ onBeforeUnmount(() => {
 })
 
 const mediaTypes = [
-  { value: 'article', label: 'Article', icon: FileTextIcon },
-  { value: 'podcast', label: 'Podcast', icon: HeadphonesIcon },
-  { value: 'video', label: 'Video', icon: VideoIcon },
-  { value: 'doc', label: 'Document', icon: FileIcon }
+  { value: 'article', label: 'Article', icon: NewspaperIcon },
+  { value: 'podcast', label: 'Podcast', icon: HeadphonesIcon, accept: 'audio/*' },
+  { value: 'video', label: 'Video', icon: VideoIcon, accept: 'video/*' },
+  { value: 'doc', label: 'Document', icon: FileIcon, accept: '.pdf,.doc,.docx' },
+  { value: 'collection', label: 'Sub Collection', icon: FolderIcon }
 ]
 
 const handleThumbnailUpload = (event: Event) => {
@@ -113,6 +116,15 @@ const isDrawerOpen = ref(false)
 const toggleDrawer = () => {
   isDrawerOpen.value = !isDrawerOpen.value
 }
+
+const handleTypeSelect = (type: string) => {
+  post.value.type = type
+  if (['article', 'collection'].includes(type)) {
+    isSheetOpen.value = false
+  }
+}
+
+const isSheetOpen = ref(false)
 </script>
 
 <template>
@@ -139,31 +151,65 @@ const toggleDrawer = () => {
 
       <!-- Cell 2: Media Type -->
       <div class="border-r border-zinc-200 h-[50px]">
-        <Sheet>
-          <SheetTrigger class="w-full h-full px-3 flex items-center justify-center lg:justify-start gap-2 hover:bg-muted/5">
+        <Sheet v-model:open="isSheetOpen">
+          <SheetTrigger class="w-full h-full px-3 flex items-center justify-center hover:bg-muted/5">
             <component 
-              :is="mediaTypes.find(t => t.value === post.type)?.icon || FileTextIcon"
+              :is="mediaTypes.find(t => t.value === post.type)?.icon || NewspaperIcon"
               class="w-4 h-4"
             />
-            <span class="text-sm text-muted-foreground lg:inline hidden">{{ 
-              mediaTypes.find(t => t.value === post.type)?.label || 'Article'
-            }}</span>
           </SheetTrigger>
           <SheetContent side="bottom" class="h-[400px]">
-            <div class="flex flex-col divide-y">
+            <!-- First show all options -->
+            <div v-if="!['podcast', 'video', 'doc'].includes(post.type)" class="flex flex-col divide-y">
               <button
                 v-for="type in mediaTypes"
                 :key="type.value"
-                @click="post.type = type.value"
+                @click="handleTypeSelect(type.value)"
                 class="flex items-center gap-3 p-4 hover:bg-muted/5 transition-colors"
                 :class="{ 'bg-muted/10': post.type === type.value }"
               >
                 <component :is="type.icon" class="w-5 h-5" />
-                <div class="flex flex-col items-start">
-                  <span class="text-sm font-medium">{{ type.label }}</span>
-                  <span class="text-xs text-muted-foreground">Create a new {{ type.label.toLowerCase() }}</span>
-                </div>
+                <span class="text-sm font-medium">{{ type.label }}</span>
               </button>
+            </div>
+
+            <!-- Show selected type and upload for media types -->
+            <div v-else class="flex flex-col gap-4 p-4">
+              <!-- Selected Type Header -->
+              <div class="flex items-center gap-3 pb-4 border-b">
+                <button 
+                  class="hover:bg-muted/5 p-2 rounded-full"
+                  @click="post.type = 'article'"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m15 18-6-6 6-6"/>
+                  </svg>
+                </button>
+                <div class="flex items-center gap-2">
+                  <component :is="mediaTypes.find(t => t.value === post.type)?.icon" class="w-5 h-5" />
+                  <span class="text-sm font-medium">
+                    {{ mediaTypes.find(t => t.value === post.type)?.label }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Upload Section -->
+              <div class="flex-1">
+                <FileUpload 
+                  :accept="mediaTypes.find(t => t.value === post.type)?.accept"
+                  @upload-complete="(url) => { post.asset = url; isSheetOpen = false; }"
+                />
+              </div>
             </div>
           </SheetContent>
         </Sheet>

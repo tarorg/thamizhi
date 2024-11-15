@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { ChevronLeft, ChevronRight, Play, Clock, BookmarkIcon } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Play, Clock, BookmarkIcon, PlusIcon } from 'lucide-vue-next'
 
 // Add tabs data
 const tabs = ref([
@@ -146,9 +146,9 @@ const handleAddNew = () => {
         <div class="ml-auto">
           <button 
             @click="handleAddNew"
-            class="rounded-full bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+            class="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/90"
           >
-            Post +
+            <PlusIcon class="h-4 w-4" />
           </button>
         </div>
       </div>
