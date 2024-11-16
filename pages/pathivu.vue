@@ -39,6 +39,14 @@ interface UploadResponse {
   name: string
 }
 
+// Add these interfaces near the top with other interfaces
+interface ThumbnailUploadResponse {
+  url: string
+  file: File
+  type: string
+  name: string
+}
+
 const post = ref({
   thumbnail: null as File | null,
   thumbnailUrl: '',
@@ -96,11 +104,52 @@ const mediaTypes = [
   { value: 'collection', label: 'Sub Collection', icon: FolderIcon }
 ]
 
-const handleThumbnailUpload = (event: Event) => {
+// Add this with other refs
+const isUploading = ref(false)
+
+// Replace the handleThumbnailUpload function with this new version
+const handleThumbnailUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement
-  if (input.files && input.files[0]) {
-    post.value.thumbnail = input.files[0]
-    post.value.thumbnailUrl = URL.createObjectURL(input.files[0])
+  if (!input.files?.length) return
+  
+  const file = input.files[0]
+  
+  isUploading.value = true
+  try {
+    // Create preview immediately for better UX
+    post.value.thumbnailUrl = URL.createObjectURL(file)
+    post.value.thumbnail = file
+    
+    const formData = new FormData()
+    // Add timestamp to filename to prevent caching issues
+    const timestamp = new Date().getTime()
+    const fileName = `thumbnail-${timestamp}-${file.name}`
+    formData.append('name', fileName)
+    formData.append('file', file)
+
+    const response = await fetch('https://par.thamizhnationorg.workers.dev/upload', {
+      method: 'PUT',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      throw new Error(errorData?.message || 'Thumbnail upload failed')
+    }
+    
+    await response.json()
+    
+    // Update the thumbnail URL to use the R2 URL
+    post.value.thumbnailUrl = `https://pub-0f5bc537cc2f43028e30f936719213e7.r2.dev/${fileName}`
+    
+  } catch (err) {
+    console.error('Thumbnail upload error:', err)
+    // Reset on error
+    post.value.thumbnail = null
+    post.value.thumbnailUrl = ''
+    // You might want to show an error message to the user here
+  } finally {
+    isUploading.value = false
   }
 }
 
@@ -150,8 +199,68 @@ const handleUploadComplete = (response: UploadResponse) => {
     name: response.name
   })
   
-  if (!['podcast', 'video'].includes(post.value.type)) {
-    isSheetOpen.value = false
+  // Automatically close sheet after successful upload
+  isSheetOpen.value = false
+}
+
+// Add these functions near other utility functions
+const deleteFileFromR2 = async (fileName: string) => {
+  try {
+    const response = await fetch(`https://par.thamizhnationorg.workers.dev/${fileName}`, {
+      method: 'DELETE'
+    })
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete file from R2')
+    }
+    
+    console.log('File deleted successfully:', fileName) // Add logging for debugging
+    return true
+  } catch (err) {
+    console.error('Error deleting file from R2:', err)
+    return false
+  }
+}
+
+// Add this function to handle back button press
+const handleBackPress = async () => {
+  if (post.value.asset) {
+    const confirmed = await window.confirm('Change the Type and Remove the file?')
+    if (confirmed) {
+      // Extract filename from the URL
+      const fileName = previewUrl.value.split('/').pop()
+      if (fileName) {
+        await deleteFileFromR2(fileName)
+      }
+      
+      // Reset state
+      post.value.asset = null
+      previewUrl.value = ''
+      post.value.type = 'article'
+    }
+    return confirmed
+  }
+  
+  // If no asset, just go back
+  post.value.type = 'article'
+  return true
+}
+
+// Add this function to handle file change
+const handleFileChange = async () => {
+  if (post.value.asset && previewUrl.value) {
+    const confirmed = await window.confirm('Remove the current file?')
+    if (confirmed) {
+      // Extract filename from the URL
+      const fileName = previewUrl.value.split('/').pop()
+      if (fileName) {
+        await deleteFileFromR2(fileName)
+      }
+      
+      // Reset state
+      post.value.asset = null
+      previewUrl.value = ''
+    }
   }
 }
 </script>
@@ -171,6 +280,9 @@ const handleUploadComplete = (response: UploadResponse) => {
         <div class="absolute inset-0 flex items-center justify-center">
           <div v-if="post.thumbnailUrl" class="w-full h-full">
             <img :src="post.thumbnailUrl" class="w-full h-full object-cover" />
+            <div v-if="isUploading" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            </div>
           </div>
           <div v-else class="text-center">
             <PlusIcon class="w-4 h-4 text-muted-foreground" />
@@ -209,7 +321,7 @@ const handleUploadComplete = (response: UploadResponse) => {
                 <div class="flex items-center gap-3">
                   <button 
                     class="hover:bg-muted/5 p-2 rounded-full"
-                    @click="post.type = 'article'; post.asset = null; previewUrl = ''"
+                    @click="handleBackPress"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -253,7 +365,7 @@ const handleUploadComplete = (response: UploadResponse) => {
                   <div class="flex items-center justify-between mb-4">
                     <p class="text-sm font-medium">Preview</p>
                     <button 
-                      @click="post.asset = null; previewUrl = ''"
+                      @click="handleFileChange"
                       class="text-xs text-muted-foreground hover:text-foreground"
                     >
                       Change file
@@ -290,16 +402,6 @@ const handleUploadComplete = (response: UploadResponse) => {
                   <div v-if="post.type === 'doc'" class="text-center text-sm text-muted-foreground">
                     <FileIcon class="w-8 h-8 mx-auto mb-2" />
                     Document uploaded
-                  </div>
-
-                  <!-- Done Button -->
-                  <div class="mt-4 flex justify-end">
-                    <button
-                      @click="isSheetOpen = false"
-                      class="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90"
-                    >
-                      Done
-                    </button>
                   </div>
                 </div>
               </div>
