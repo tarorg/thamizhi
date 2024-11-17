@@ -23,6 +23,122 @@
 
       <!-- Form Fields -->
       <div class="divide-y">
+        <!-- Thumbnail Field -->
+        <div class="flex items-center p-4 hover:bg-muted/5 transition-colors">
+          <div class="w-1/3 flex items-center gap-2">
+            <span class="text-sm font-medium">படம்</span>
+            <span class="text-xs text-muted-foreground">/</span>
+            <span class="text-sm text-muted-foreground">Thumbnail</span>
+          </div>
+          <div class="flex-1">
+            <!-- Show this when there's no image -->
+            <Tabs v-if="!form.thumbnailUrl" v-model="activeTab" class="w-full">
+              <TabsList class="mb-4">
+                <TabsTrigger value="upload" class="flex items-center gap-2">
+                  <UploadIcon class="w-4 h-4" />
+                  Upload
+                </TabsTrigger>
+                <TabsTrigger value="url" class="flex items-center gap-2">
+                  <LinkIcon class="w-4 h-4" />
+                  URL
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="upload">
+                <div class="relative h-[100px] w-[100px] border rounded-lg overflow-hidden">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    @change="handleThumbnailUpload"
+                  />
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <div v-if="form.thumbnailUrl" class="w-full h-full">
+                      <img 
+                        :src="form.thumbnailUrl" 
+                        class="w-full h-full object-cover"
+                        alt="Thumbnail preview" 
+                      />
+                      <div 
+                        v-if="isUploading" 
+                        class="absolute inset-0 bg-black/50 flex items-center justify-center"
+                      >
+                        <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      </div>
+                    </div>
+                    <div v-else class="text-center">
+                      <PlusIcon class="w-6 h-6 text-muted-foreground" />
+                      <span class="text-xs text-muted-foreground mt-1">Upload Image</span>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="url">
+                <div class="space-y-4">
+                  <div class="flex gap-2">
+                    <Input
+                      v-model="imageUrl"
+                      type="url"
+                      placeholder="Enter image URL..."
+                      class="flex-1"
+                    />
+                    <button 
+                      @click="handleImageUrl"
+                      class="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                      :disabled="!imageUrl"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  
+                  <!-- URL Image Preview -->
+                  <div 
+                    v-if="form.thumbnailUrl && activeTab === 'url'" 
+                    class="relative h-[100px] w-[100px] border rounded-lg overflow-hidden"
+                  >
+                    <img 
+                      :src="form.thumbnailUrl" 
+                      class="w-full h-full object-cover"
+                      alt="URL thumbnail preview" 
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <!-- Show this when there's an image -->
+            <div 
+              v-else 
+              class="relative h-[100px] w-[100px] border rounded-lg overflow-hidden group"
+            >
+              <img 
+                :src="form.thumbnailUrl" 
+                class="w-full h-full object-cover"
+                alt="Thumbnail preview" 
+              />
+              
+              <!-- Remove button overlay on hover -->
+              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  @click="removeThumbnail"
+                  class="p-1.5 rounded-full bg-black/50 hover:bg-black/75 transition-colors"
+                >
+                  <XIcon class="w-4 h-4 text-white" />
+                </button>
+              </div>
+
+              <!-- Loading overlay -->
+              <div 
+                v-if="isUploading" 
+                class="absolute inset-0 bg-black/50 flex items-center justify-center"
+              >
+                <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Section Field -->
         <div class="flex items-center p-4 hover:bg-muted/5 transition-colors">
           <div class="w-1/3 flex items-center gap-2">
@@ -109,23 +225,103 @@ import {
   SelectValue 
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { ChevronDownIcon } from 'lucide-vue-next'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ChevronDownIcon, PlusIcon, ImageIcon, UploadIcon, LinkIcon, XIcon } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'default'
 })
 
 interface IzhaiForm {
+  thumbnail: File | null
+  thumbnailUrl: string
   section: string
   collection: string
   thread: string
 }
 
 const form = ref<IzhaiForm>({
+  thumbnail: null,
+  thumbnailUrl: '',
   section: '',
   collection: '',
   thread: ''
 })
+
+// Add isUploading state
+const isUploading = ref(false)
+
+// Add thumbnail upload handler
+const handleThumbnailUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
+  
+  const file = input.files[0]
+  
+  isUploading.value = true
+  try {
+    // Create preview immediately for better UX
+    form.value.thumbnailUrl = URL.createObjectURL(file)
+    form.value.thumbnail = file
+    
+    const formData = new FormData()
+    // Add timestamp to filename to prevent caching issues
+    const timestamp = new Date().getTime()
+    const fileName = `izhai-thumbnail-${timestamp}-${file.name}`
+    formData.append('name', fileName)
+    formData.append('file', file)
+
+    const response = await fetch('https://par.thamizhnationorg.workers.dev/upload', {
+      method: 'PUT',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null)
+      throw new Error(errorData?.message || 'Thumbnail upload failed')
+    }
+    
+    await response.json()
+    
+    // Update the thumbnail URL to use the R2 URL
+    form.value.thumbnailUrl = `https://pub-0f5bc537cc2f43028e30f936719213e7.r2.dev/${fileName}`
+    
+  } catch (err) {
+    console.error('Thumbnail upload error:', err)
+    // Reset on error
+    form.value.thumbnail = null
+    form.value.thumbnailUrl = ''
+    // You might want to show an error message to the user here
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// Add new ref for image URL input
+const imageUrl = ref('')
+
+// Add method to handle URL image
+const handleImageUrl = async () => {
+  if (!imageUrl.value) return
+  
+  isUploading.value = true
+  try {
+    // Update form with the URL
+    form.value.thumbnailUrl = imageUrl.value
+    form.value.thumbnail = null // Since it's a URL, not a file
+    
+  } catch (err) {
+    console.error('Image URL error:', err)
+    form.value.thumbnailUrl = ''
+    // Handle error
+  } finally {
+    isUploading.value = false
+    imageUrl.value = '' // Reset input
+  }
+}
+
+// Add active tab state
+const activeTab = ref('upload')
 
 // Bilingual data for dropdowns
 const sections = [
@@ -143,6 +339,13 @@ const collections = [
 
 const handleSubmit = () => {
   console.log('Form submitted:', form.value)
+}
+
+// Add new method for removing thumbnail
+const removeThumbnail = () => {
+  form.value.thumbnail = null
+  form.value.thumbnailUrl = ''
+  activeTab.value = 'upload' // Reset to upload tab
 }
 </script>
 
@@ -167,5 +370,41 @@ input:focus {
 /* Custom hover states */
 .hover-highlight:hover {
   @apply bg-muted/5;
+}
+
+/* Add thumbnail specific styles */
+.thumbnail-upload {
+  @apply relative border-2 border-dashed border-muted-foreground/20 rounded-lg 
+         hover:border-muted-foreground/40 transition-colors;
+}
+
+.thumbnail-upload:hover .upload-overlay {
+  @apply opacity-100;
+}
+
+.upload-overlay {
+  @apply absolute inset-0 bg-black/50 opacity-0 transition-opacity
+         flex flex-col items-center justify-center text-white;
+}
+
+/* Add tab specific styles */
+:deep(.tabs-list) {
+  @apply inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground;
+}
+
+:deep(.tabs-trigger) {
+  @apply inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow;
+}
+
+:deep(.tabs-content) {
+  @apply mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+.group:hover .group-hover\:opacity-100 {
+  opacity: 1;
+}
+
+.group:hover .hover\:bg-black\/75:hover {
+  background-color: rgba(0, 0, 0, 0.75);
 }
 </style> 
