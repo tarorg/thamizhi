@@ -63,13 +63,13 @@ const navigate = (path: string) => {
           </SidebarMenuButton>
 
           <SidebarMenuButton 
-            @click="navigate('/katrai')"
-            :is-active="route.path === '/katrai'"
-            tooltip="கற்றை"
+            @click="navigate('/noolakam')"
+            :is-active="route.path === '/noolakam'"
+            tooltip="நூலகம்"
             class="text-foreground"
           >
             <Library class="text-foreground" />
-            <span>கற்றை</span>
+            <span>நூலகம்</span>
           </SidebarMenuButton>
         </SidebarMenu>
       </SidebarContent>
@@ -131,11 +131,11 @@ const navigate = (path: string) => {
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/katrai' }"
-                    @click="navigate('/katrai')"
+                    :class="{ 'bg-accent': route.path === '/noolakam' }"
+                    @click="navigate('/noolakam')"
                   >
                     <Library class="mr-2 h-5 w-5" />
-                    கற்றை 
+                    நூலகம் 
                   </Button>
                 </div>
               </div>

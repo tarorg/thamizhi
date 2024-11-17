@@ -28,7 +28,7 @@ export default defineNuxtConfig({
       crawlLinks: true,
       routes: [
         '/',
-        '/katrai',
+        '/noolakam',
         '/pathivu'
       ]
     }

@@ -73,7 +73,7 @@ onMounted(async () => {
       holder: 'editor',
       tools: {
         header: {
-          class: Header,
+          class: Header as any,
           config: {
             levels: [2, 3, 4],
             defaultLevel: 2
@@ -100,8 +100,7 @@ const mediaTypes = [
   { value: 'article', label: 'Article', icon: NewspaperIcon },
   { value: 'podcast', label: 'Podcast', icon: HeadphonesIcon, accept: 'audio/*' },
   { value: 'video', label: 'Video', icon: VideoIcon, accept: 'video/*' },
-  { value: 'doc', label: 'Document', icon: FileIcon, accept: '.pdf,.doc,.docx' },
-  { value: 'collection', label: 'Sub Collection', icon: FolderIcon }
+  { value: 'doc', label: 'Document', icon: FileIcon, accept: '.pdf,.doc,.docx' }
 ]
 
 // Add this with other refs
@@ -176,7 +175,7 @@ const toggleDrawer = () => {
 
 const handleTypeSelect = (type: string) => {
   post.value.type = type
-  if (['article', 'collection'].includes(type)) {
+  if (type === 'article') {
     isSheetOpen.value = false
   }
 }
