@@ -347,6 +347,67 @@ const getImageHandleAtPosition = (e: MouseEvent, canvas: HTMLCanvasElement): Ima
   return null
 }
 
+// Update the drawAsterisk function to create a Y-shaped asterisk
+const drawAsterisk = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, thickness: number) => {
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = thickness
+  ctx.lineCap = 'round' // Add rounded ends for cleaner look
+  
+  // Draw the vertical line (stem)
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.lineTo(x, y + size)
+  ctx.stroke()
+  
+  // Draw the two diagonal lines at the top
+  const angle = Math.PI / 4 // 45 degrees
+  const topY = y // Top point
+  
+  // Right diagonal
+  ctx.beginPath()
+  ctx.moveTo(x, topY)
+  ctx.lineTo(x + size * Math.cos(-angle), topY - size * Math.sin(-angle))
+  ctx.stroke()
+  
+  // Left diagonal
+  ctx.beginPath()
+  ctx.moveTo(x, topY)
+  ctx.lineTo(x + size * Math.cos(-Math.PI + angle), topY - size * Math.sin(-Math.PI + angle))
+  ctx.stroke()
+
+  // Draw resize handle if being dragged
+  if (asterisk.value.isDragging) {
+    ctx.strokeStyle = '#4F46E5'
+    ctx.fillStyle = 'white'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(x + size, y + size, 6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+  }
+}
+
+// Add this function to check if a point is within the asterisk area
+const isPointInAsterisk = (x: number, y: number, asteriskX: number, asteriskY: number, size: number): string | null => {
+  const distance = Math.sqrt(Math.pow(x - asteriskX, 2) + Math.pow(y - asteriskY, 2))
+  
+  // Check if clicking resize handle
+  const handleX = asteriskX + size
+  const handleY = asteriskY + size
+  const handleDistance = Math.sqrt(Math.pow(x - handleX, 2) + Math.pow(y - handleY, 2))
+  
+  if (handleDistance <= 6) {
+    return 'resize'
+  }
+  
+  // Check if clicking asterisk
+  if (distance <= size) {
+    return 'move'
+  }
+  
+  return null
+}
+
 // Render function
 const renderPoster = async () => {
   const canvas = canvasRef.value
@@ -365,6 +426,26 @@ const renderPoster = async () => {
   // Draw background color
   ctx.fillStyle = poster.value.backgroundColor
   ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  // Draw Asterisk in top-right corner
+  ctx.save()
+  const asteriskSize = 40 // Adjust size as needed
+  const padding = 20 // Distance from edges
+  
+  // Position in top-right corner
+  ctx.translate(canvas.width - asteriskSize - padding, padding)
+  
+  // Set the color
+  ctx.fillStyle = poster.value.asteriskColor
+  
+  // Draw the asterisk path
+  ctx.beginPath()
+  const path = new Path2D("M489.838,29.354v443.603L68.032,335.894L0,545.285l421.829,137.086l-260.743,358.876l178.219,129.398L600.048,811.84l260.673,358.806l178.146-129.398L778.101,682.465L1200,545.379l-68.032-209.403l-421.899,137.07V29.443H489.84L489.838,29.354z")
+  
+  // Scale the path to our desired size
+  ctx.scale(asteriskSize/1200, asteriskSize/1200)
+  ctx.fill(path)
+  ctx.restore()
 
   // Draw background image if exists
   if (poster.value.backgroundUrl) {
@@ -440,6 +521,15 @@ const renderPoster = async () => {
       console.error('Error drawing background image:', err)
     }
   }
+
+  // Draw the asterisk with current properties
+  drawAsterisk(
+    ctx,
+    asterisk.value.x,
+    asterisk.value.y,
+    asterisk.value.size,
+    asterisk.value.thickness
+  )
 
   // Draw text elements with controls
   for (const element of textElements.value) {
@@ -1038,7 +1128,9 @@ const handleMouseMove = (e: MouseEvent) => {
     <div class="flex-1 bg-muted/10 flex flex-col h-full">
       <!-- Toolbar -->
       <div class="h-12 border-b bg-background flex items-center justify-between px-4">
-        <h1 class="text-lg font-medium">Poster</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-medium">Poster</h1>
+        </div>
         <Button variant="default" @click="downloadPoster">
           <DownloadIcon class="w-4 h-4 mr-2" />
           Download
