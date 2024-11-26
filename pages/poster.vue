@@ -39,6 +39,7 @@ interface PosterContent {
   letterSpacing: number
   lineHeight: number
   textTransform: string
+  asteriskColor: string
 }
 
 const poster = ref<PosterContent>({
@@ -58,7 +59,8 @@ const poster = ref<PosterContent>({
   fontFamily: 'Arial',
   letterSpacing: 0,
   lineHeight: 1.2,
-  textTransform: 'none'
+  textTransform: 'none',
+  asteriskColor: '#ffffff'
 })
 
 // Canvas ref
@@ -122,6 +124,21 @@ const handleMouseDown = (e: MouseEvent) => {
   if (!canvas) return
 
   const pos = getMousePosition(e, canvas)
+  
+  // Check for Asterisk interaction first
+  const asteriskInteraction = isPointInAsterisk(
+    pos.x,
+    pos.y,
+    asterisk.value.x,
+    asterisk.value.y,
+    asterisk.value.size
+  )
+  
+  if (asteriskInteraction === 'move') {
+    handleAsteriskDrag(e)
+    return
+  }
+  
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
@@ -427,26 +444,6 @@ const renderPoster = async () => {
   ctx.fillStyle = poster.value.backgroundColor
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-  // Draw Asterisk in top-right corner
-  ctx.save()
-  const asteriskSize = 40 // Adjust size as needed
-  const padding = 20 // Distance from edges
-  
-  // Position in top-right corner
-  ctx.translate(canvas.width - asteriskSize - padding, padding)
-  
-  // Set the color
-  ctx.fillStyle = poster.value.asteriskColor
-  
-  // Draw the asterisk path
-  ctx.beginPath()
-  const path = new Path2D("M489.838,29.354v443.603L68.032,335.894L0,545.285l421.829,137.086l-260.743,358.876l178.219,129.398L600.048,811.84l260.673,358.806l178.146-129.398L778.101,682.465L1200,545.379l-68.032-209.403l-421.899,137.07V29.443H489.84L489.838,29.354z")
-  
-  // Scale the path to our desired size
-  ctx.scale(asteriskSize/1200, asteriskSize/1200)
-  ctx.fill(path)
-  ctx.restore()
-
   // Draw background image if exists
   if (poster.value.backgroundUrl) {
     try {
@@ -522,14 +519,25 @@ const renderPoster = async () => {
     }
   }
 
-  // Draw the asterisk with current properties
-  drawAsterisk(
-    ctx,
-    asterisk.value.x,
-    asterisk.value.y,
-    asterisk.value.size,
-    asterisk.value.thickness
-  )
+  // Draw the Asterisk with current properties
+  const asteriskPath = new Path2D("M489.838,29.354v443.603L68.032,335.894L0,545.285l421.829,137.086l-260.743,358.876l178.219,129.398L600.048,811.84l260.673,358.806l178.146-129.398L778.101,682.465L1200,545.379l-68.032-209.403l-421.899,137.07V29.443H489.84L489.838,29.354z")
+  
+  ctx.save()
+  ctx.translate(asterisk.value.x, asterisk.value.y)
+  ctx.scale(asterisk.value.size/1200, asterisk.value.size/1200)
+  ctx.translate(-600, -600) // Center the path
+  
+  ctx.fillStyle = poster.value.asteriskColor
+  ctx.fill(asteriskPath)
+  
+  // Draw controls if being dragged
+  if (asterisk.value.isDragging) {
+    ctx.strokeStyle = '#4F46E5'
+    ctx.lineWidth = 2
+    ctx.stroke(asteriskPath)
+  }
+  
+  ctx.restore()
 
   // Draw text elements with controls
   for (const element of textElements.value) {
@@ -867,6 +875,63 @@ const handleMouseMove = (e: MouseEvent) => {
 
   canvas.style.cursor = isOverGrip ? 'pointer' : 'default'
 }
+
+// Add new interface for Asterisk state
+interface AsteriskState {
+  x: number
+  y: number
+  size: number
+  isDragging: boolean
+  thickness: number
+}
+
+// Add new ref for Asterisk state
+const asterisk = ref<AsteriskState>({
+  x: dimensions.value.width - 60, // Initial position from right
+  y: 40, // Initial position from top
+  size: 40,
+  isDragging: false,
+  thickness: 2
+})
+
+// Add Asterisk drag handler
+const handleAsteriskDrag = (e: MouseEvent) => {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  
+  const startPos = getMousePosition(e, canvas)
+  const startX = asterisk.value.x
+  const startY = asterisk.value.y
+  
+  asterisk.value.isDragging = true
+  
+  const onMouseMove = (moveEvent: MouseEvent) => {
+    const currentPos = getMousePosition(moveEvent, canvas)
+    const dx = currentPos.x - startPos.x
+    const dy = currentPos.y - startPos.y
+    
+    // Update position while keeping within canvas bounds
+    asterisk.value.x = Math.max(
+      asterisk.value.size/2,
+      Math.min(canvas.width - asterisk.value.size/2, startX + dx)
+    )
+    asterisk.value.y = Math.max(
+      asterisk.value.size/2,
+      Math.min(canvas.height - asterisk.value.size/2, startY + dy)
+    )
+    
+    renderPoster()
+  }
+  
+  const onMouseUp = () => {
+    asterisk.value.isDragging = false
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+  
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
 </script>
 
 <template>
@@ -1010,6 +1075,20 @@ const handleMouseMove = (e: MouseEvent) => {
               >
                 Reset Text Positions
               </Button>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-sm font-medium">Logo Color</label>
+              <div class="grid grid-cols-4 gap-2">
+                <Button
+                  v-for="color in ['#ffffff', '#ff0000', '#ffff00', '#0000ff', '#000000', '#00ff00']"
+                  :key="color"
+                  variant="outline"
+                  class="w-full h-8"
+                  :style="{ backgroundColor: color }"
+                  @click="poster.asteriskColor = color"
+                />
+              </div>
             </div>
           </TabsContent>
 
