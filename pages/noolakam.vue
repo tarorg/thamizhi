@@ -184,9 +184,6 @@ onMounted(() => {
                 <div class="absolute bottom-0 p-4 w-full">
                   <h3 class="text-xl font-bold text-white mb-1">{{ item.thread }}</h3>
                   <p class="text-sm text-white/80">{{ item.section }}</p>
-                  <p class="text-sm text-white/60 mt-1">
-                    {{ new Date(item.createdat).toLocaleDateString() }}
-                  </p>
                 </div>
               </div>
             </div>
@@ -237,8 +234,6 @@ onMounted(() => {
                   <p class="text-muted-foreground mb-4">{{ item.collection }}</p>
                   <div class="flex items-center gap-4 text-sm text-muted-foreground">
                     <span>{{ item.section }}</span>
-                    <span>•</span>
-                    <span>{{ new Date(item.createdat).toLocaleDateString() }}</span>
                   </div>
                 </div>
               </div>
