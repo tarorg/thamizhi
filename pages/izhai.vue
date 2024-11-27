@@ -8,9 +8,10 @@
       </div>
       <button 
         @click="handleSubmit"
-        class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
+        class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+        :disabled="isLoading"
       >
-        சேமி / Save
+        {{ isLoading ? 'Saving...' : 'சேமி / Save' }}
       </button>
     </div>
 
@@ -213,6 +214,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Add error message display -->
+    <div 
+      v-if="error" 
+      class="text-red-500 text-sm mt-2"
+    >
+      {{ error }}
+    </div>
   </div>
 </template>
 
@@ -337,8 +346,67 @@ const collections = [
   { value: 'modern', label: { ta: 'நவீன இலக்கியம்', en: 'Modern Literature' } }
 ]
 
-const handleSubmit = () => {
-  console.log('Form submitted:', form.value)
+const isLoading = ref(false)
+const error = ref<string | null>(null)
+
+const handleSubmit = async () => {
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  error.value = null
+
+  try {
+    // Validate required fields
+    if (!form.value.section || !form.value.collection || !form.value.thread) {
+      throw new Error('Please fill in all required fields')
+    }
+
+    const response = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        requests: [{
+          type: "execute",
+          stmt: {
+            sql: `INSERT INTO izhai (thumbnail, section, collection, thread, createdat, updatedat) 
+                  VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [
+              { type: "text", value: form.value.thumbnailUrl || '' },
+              { type: "text", value: form.value.section },
+              { type: "text", value: form.value.collection },
+              { type: "text", value: form.value.thread },
+              { type: "text", value: new Date().toISOString() },
+              { type: "text", value: new Date().toISOString() }
+            ]
+          }
+        }]
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Server response:', errorText)
+      throw new Error(`Failed to save thread: ${response.statusText}`)
+    }
+
+    const result = await response.json()
+    
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    // Success - redirect to threads list
+    navigateTo('/threads')
+
+  } catch (err) {
+    console.error('Failed to save thread:', err)
+    error.value = err instanceof Error ? err.message : 'Failed to save thread'
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // Add new method for removing thumbnail
