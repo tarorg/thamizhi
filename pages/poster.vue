@@ -549,74 +549,126 @@ const renderPoster = async () => {
       : `${poster.value.fontWeight} ${poster.value.fontSize * 0.6}px ${poster.value.fontFamily}`
     
     ctx.textAlign = poster.value.textAlign as CanvasTextAlign
-    const metrics = ctx.measureText(text)
-    const height = element.type === 'heading' ? poster.value.fontSize : poster.value.fontSize * 0.6
     
-    // Draw controls if element is being dragged or controls are shown
-    if (element.isDragging || element.showControls) {
-      const padding = 10
+    // Handle multiline text for heading
+    if (element.type === 'heading' && text.includes('\n')) {
+      const lines = text.split('\n')
+      const lineHeight = poster.value.fontSize * poster.value.lineHeight
       
-      // Draw background
-      ctx.fillStyle = 'rgba(79, 70, 229, 0.1)' // Indigo with opacity
-      ctx.fillRect(
-        element.x - metrics.width/2 - padding,
-        element.y - height - padding,
-        metrics.width + padding * 2,
-        height + padding * 2
-      )
-
-      // Draw border
-      ctx.strokeStyle = '#4F46E5'
-      ctx.lineWidth = 1
-      ctx.strokeRect(
-        element.x - metrics.width/2 - padding,
-        element.y - height - padding,
-        metrics.width + padding * 2,
-        height + padding * 2
-      )
-
-      // Draw drag handle icon (grip)
-      const gripX = element.x + metrics.width/2 + padding + 5
-      const gripY = element.y - height/2
-      const gripWidth = 16
-      const gripHeight = 16
+      lines.forEach((line, index) => {
+        const y = element.y + (index * lineHeight) - ((lines.length - 1) * lineHeight / 2)
+        ctx.fillStyle = poster.value.textColor
+        
+        // Calculate x position based on alignment
+        let x = element.x
+        const metrics = ctx.measureText(line)
+        let shouldDrawText = true
+        
+        if (poster.value.textAlign === 'left') {
+          x = element.x - dimensions.value.width/2 + 40 // Add padding from left
+        } else if (poster.value.textAlign === 'right') {
+          x = element.x + dimensions.value.width/2 - metrics.width - 40 // Add padding from right
+        } else if (poster.value.textAlign === 'justify' && index < lines.length - 1) {
+          // Only justify if not the last line
+          const words = line.split(' ')
+          if (words.length > 1) {
+            const totalWidth = dimensions.value.width - 80 // Total width minus padding
+            const spaceWidth = (totalWidth - metrics.width) / (words.length - 1)
+            
+            x = element.x - dimensions.value.width/2 + 40 // Start from left padding
+            words.forEach((word, wordIndex) => {
+              const wordMetrics = ctx.measureText(word)
+              ctx.fillText(word, x, y)
+              if (wordIndex < words.length - 1) {
+                x += wordMetrics.width + spaceWidth
+              }
+            })
+            shouldDrawText = false // Skip the normal fillText call
+          }
+        } else {
+          // Center alignment (default)
+          x = element.x
+        }
+        
+        // Draw text if not already drawn by justification
+        if (shouldDrawText) {
+          ctx.fillText(line, x, y)
+        }
+        
+        // Update metrics for controls
+        if (element.showControls || element.isDragging) {
+          const controlWidth = poster.value.textAlign === 'justify' 
+            ? dimensions.value.width - 80 
+            : metrics.width + 20
+          
+          const controlX = poster.value.textAlign === 'left' 
+            ? element.x - dimensions.value.width/2 + 30
+            : poster.value.textAlign === 'right'
+              ? element.x + dimensions.value.width/2 - controlWidth - 30
+              : element.x - controlWidth/2
+          
+          ctx.fillStyle = 'rgba(79, 70, 229, 0.1)'
+          ctx.fillRect(
+            controlX,
+            y - poster.value.fontSize - 10,
+            controlWidth,
+            poster.value.fontSize + 20
+          )
+          
+          ctx.strokeStyle = '#4F46E5'
+          ctx.lineWidth = 1
+          ctx.strokeRect(
+            controlX,
+            y - poster.value.fontSize - 10,
+            controlWidth,
+            poster.value.fontSize + 20
+          )
+        }
+      })
+    } else {
+      // Single line text rendering
+      const metrics = ctx.measureText(text)
+      const height = element.type === 'heading' ? poster.value.fontSize : poster.value.fontSize * 0.6
       
-      // Draw grip background
-      ctx.fillStyle = '#4F46E5'
-      ctx.beginPath()
-      ctx.arc(gripX, gripY, gripWidth/2, 0, Math.PI * 2)
-      ctx.fill()
-      
-      // Draw grip lines
-      ctx.strokeStyle = 'white'
-      ctx.lineWidth = 2
-      
-      // Draw three horizontal lines
-      const lineWidth = 8
-      const spacing = 3
-      for (let i = -1; i <= 1; i++) {
-        const y = gripY + i * spacing
-        ctx.beginPath()
-        ctx.moveTo(gripX - lineWidth/2, y)
-        ctx.lineTo(gripX + lineWidth/2, y)
-        ctx.stroke()
+      // Calculate x position based on alignment
+      let x = element.x
+      if (poster.value.textAlign === 'left') {
+        x = element.x - dimensions.value.width/2 + 40
+      } else if (poster.value.textAlign === 'right') {
+        x = element.x + dimensions.value.width/2 - metrics.width - 40
       }
-
-      // Add hover effect area for grip
-      const gripHitbox = {
-        x: gripX - gripWidth/2,
-        y: gripY - gripHeight/2,
-        width: gripWidth,
-        height: gripHeight
+      
+      if (element.showControls || element.isDragging) {
+        const padding = 10
+        const controlWidth = metrics.width + padding * 2
+        
+        const controlX = poster.value.textAlign === 'left' 
+          ? element.x - dimensions.value.width/2 + 30
+          : poster.value.textAlign === 'right'
+            ? element.x + dimensions.value.width/2 - controlWidth - 30
+            : element.x - controlWidth/2
+        
+        ctx.fillStyle = 'rgba(79, 70, 229, 0.1)'
+        ctx.fillRect(
+          controlX,
+          element.y - height - padding,
+          controlWidth,
+          height + padding * 2
+        )
+        
+        ctx.strokeStyle = '#4F46E5'
+        ctx.lineWidth = 1
+        ctx.strokeRect(
+          controlX,
+          element.y - height - padding,
+          controlWidth,
+          height + padding * 2
+        )
       }
-
-      // Store grip hitbox for interaction
-      element.gripHitbox = gripHitbox
+      
+      ctx.fillStyle = poster.value.textColor
+      ctx.fillText(text, x, element.y)
     }
-
-    // Draw text
-    ctx.fillStyle = poster.value.textColor
-    ctx.fillText(text, element.x, element.y)
   }
 }
 
@@ -958,10 +1010,12 @@ const handleAsteriskDrag = (e: MouseEvent) => {
           <TabsContent value="content" class="mt-0 space-y-4">
             <div class="space-y-2">
               <label class="text-sm font-medium">Heading</label>
-              <Input
+              <textarea
                 v-model="poster.heading"
                 placeholder="Main heading..."
-              />
+                class="w-full min-h-[80px] p-2 rounded-md border bg-background resize-y"
+                @input="renderPoster"
+              ></textarea>
             </div>
 
             <div class="space-y-2">
@@ -999,6 +1053,7 @@ const handleAsteriskDrag = (e: MouseEvent) => {
                 <option value="left">Left</option>
                 <option value="center">Center</option>
                 <option value="right">Right</option>
+                <option value="justify">Justify</option>
               </select>
             </div>
 
