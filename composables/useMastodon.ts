@@ -1,54 +1,56 @@
+import { ref } from 'vue'
+import { useStorage } from '@vueuse/core'
+
+// Use useStorage for persistent storage
+const accessToken = useStorage<string | null>('mastodon_token', null)
+const mastodonUser = useStorage('mastodon_user', null)
+
 export function useMastodon() {
-  const mastodonToken = ref(localStorage.getItem('mastodon_token'))
-  const mastodonInstance = ref('mastodon.social')
-
-  const isAuthenticated = computed(() => Boolean(mastodonToken.value))
-
-  // Like a post
-  const likePost = async (id: string) => {
-    if (!mastodonToken.value) return
+  // Check if token is valid
+  async function validateToken() {
+    if (!accessToken.value) return false
     
-    return fetch(`https://${mastodonInstance.value}/api/v1/statuses/${id}/favourite`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${mastodonToken.value}`
-      }
-    })
-  }
-
-  // Reshare a post
-  const resharePost = async (id: string) => {
-    if (!mastodonToken.value) return
-    
-    return fetch(`https://${mastodonInstance.value}/api/v1/statuses/${id}/reblog`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${mastodonToken.value}`
-      }
-    })
-  }
-
-  // Add comment
-  const addComment = async (id: string, comment: string) => {
-    if (!mastodonToken.value) return
-    
-    return fetch(`https://${mastodonInstance.value}/api/v1/statuses`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${mastodonToken.value}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        status: comment,
-        in_reply_to_id: id
+    try {
+      const response = await fetch('https://mastodon.social/api/v1/accounts/verify_credentials', {
+        headers: {
+          'Authorization': `Bearer ${accessToken.value}`
+        }
       })
-    })
+      
+      if (!response.ok) {
+        clearAccessToken()
+        return false
+      }
+      
+      const user = await response.json()
+      mastodonUser.value = user
+      return true
+    } catch (e) {
+      clearAccessToken()
+      return false
+    }
+  }
+
+  function setAccessToken(token: string) {
+    accessToken.value = token
+    validateToken() // Validate token when setting
+  }
+
+  function clearAccessToken() {
+    accessToken.value = null
+    mastodonUser.value = null
+  }
+
+  // Check token validity on startup
+  if (process.client && accessToken.value) {
+    validateToken()
   }
 
   return {
-    isAuthenticated,
-    likePost,
-    resharePost,
-    addComment
+    accessToken,
+    mastodonUser,
+    setAccessToken,
+    clearAccessToken,
+    validateToken
   }
 } 

@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, Repeat2, Share, X } from 'lucide-vue-next'
 import CommentPanel from '@/components/CommentPanel.vue'
+import { useMastodon } from '@/composables/useMastodon'
 
 const posts = ref([])
 const loading = ref(true)
@@ -12,6 +13,7 @@ const selectedPost = ref(null)
 const showComments = ref(false)
 const comments = ref([])
 const loadingComments = ref(false)
+const { accessToken } = useMastodon()
 
 const MASTODON_INSTANCE = 'mastodon.social'
 const ACCOUNT_NAME = 'thamizhi'
@@ -50,7 +52,19 @@ async function fetchComments(postId: string) {
       `https://${MASTODON_INSTANCE}/api/v1/statuses/${postId}/context`
     )
     const data = await response.json()
-    comments.value = data.descendants || []
+    
+    // First get the selected post details
+    const postResponse = await fetch(
+      `https://${MASTODON_INSTANCE}/api/v1/statuses/${postId}`
+    )
+    const postData = await postResponse.json()
+    
+    // Combine in chronological order: ancestors -> selected post -> descendants
+    comments.value = [
+      ...(data.ancestors || []),
+      postData,
+      ...(data.descendants || [])
+    ]
   } catch (e) {
     console.error('Failed to load comments:', e)
   } finally {
@@ -86,15 +100,73 @@ async function toggleComments(post: any) {
     selectedPost.value = null
     showComments.value = false
     comments.value = []
+    stopCommentPolling()
   } else {
     selectedPost.value = post
     showComments.value = true
     await fetchComments(post.id)
+    startCommentPolling()
+  }
+}
+
+async function handleReply(postId: string, content: string) {
+  try {
+    const response = await fetch(
+      `https://${MASTODON_INSTANCE}/api/v1/statuses`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken.value}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: content,
+          in_reply_to_id: postId,
+        }),
+      }
+    )
+    
+    if (!response.ok) {
+      throw new Error('Failed to post comment')
+    }
+
+    // Refresh comments immediately after posting
+    await fetchComments(postId)
+    
+    // Update the post's reply count in the main feed
+    if (selectedPost.value) {
+      selectedPost.value.replies_count++
+    }
+  } catch (e) {
+    console.error('Failed to post comment:', e)
+  }
+}
+
+let commentPollingInterval: NodeJS.Timeout | null = null
+
+function startCommentPolling() {
+  if (commentPollingInterval) return
+  
+  commentPollingInterval = setInterval(() => {
+    if (selectedPost.value?.id) {
+      fetchComments(selectedPost.value.id)
+    }
+  }, 10000)
+}
+
+function stopCommentPolling() {
+  if (commentPollingInterval) {
+    clearInterval(commentPollingInterval)
+    commentPollingInterval = null
   }
 }
 
 onMounted(() => {
   fetchMastodonData()
+})
+
+onUnmounted(() => {
+  stopCommentPolling()
 })
 </script>
 
@@ -196,7 +268,9 @@ onMounted(() => {
       :comments="comments"
       :loading-comments="loadingComments"
       :show-comments="showComments"
+      :access-token="accessToken"
       @close="toggleComments(selectedPost)"
+      @reply="handleReply"
     />
   </div>
 </template> 

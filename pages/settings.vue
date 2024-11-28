@@ -3,21 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Settings, Key, Share2 } from 'lucide-vue-next'
+import { useMastodon } from '@/composables/useMastodon'
+import { useStorage } from '@vueuse/core'
+
+const { setAccessToken, clearAccessToken } = useMastodon()
 
 // API Key state
-const geminiKey = ref(localStorage.getItem('gemini_api_key') || '')
+const geminiKey = useStorage('gemini_api_key', '')
 const isLoading = ref(false)
 
 // Mastodon auth state
 const mastodonInstance = ref('mastodon.social')
-const mastodonToken = ref(localStorage.getItem('mastodon_token') || '')
-const mastodonUser = ref(JSON.parse(localStorage.getItem('mastodon_user') || 'null'))
+const mastodonToken = useStorage('mastodon_token', '')
+const mastodonUser = useStorage('mastodon_user', null)
 
 // Save API key
 const saveApiKey = () => {
   isLoading.value = true
   try {
-    localStorage.setItem('gemini_api_key', geminiKey.value)
+    geminiKey.value = geminiKey.value
   } finally {
     isLoading.value = false
   }
@@ -63,7 +67,16 @@ onMounted(() => {
   const code = params.get('code')
   
   if (code) {
-    const client = JSON.parse(localStorage.getItem('mastodon_client') || '{}')
+    let clientData
+    try {
+      clientData = JSON.parse(localStorage.getItem('mastodon_client') || '{}')
+      if (!clientData.client_id || !clientData.client_secret) {
+        throw new Error('Invalid client data')
+      }
+    } catch (e) {
+      console.error('Failed to parse client data:', e)
+      return
+    }
     
     // Exchange code for token
     fetch(`https://${mastodonInstance.value}/oauth/token`, {
@@ -72,17 +85,22 @@ onMounted(() => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: client.client_id,
-        client_secret: client.client_secret,
+        client_id: clientData.client_id,
+        client_secret: clientData.client_secret,
         redirect_uri: window.location.origin + '/settings',
         grant_type: 'authorization_code',
         code,
         scope: 'read write follow'
       })
     })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to get token')
+      return res.json()
+    })
     .then(data => {
-      localStorage.setItem('mastodon_token', data.access_token)
+      if (!data.access_token) throw new Error('No access token received')
+      
+      setAccessToken(data.access_token)
       mastodonToken.value = data.access_token
       
       // Get user info
@@ -92,22 +110,34 @@ onMounted(() => {
         }
       })
     })
-    .then(res => res.json())
-    .then(user => {
-      localStorage.setItem('mastodon_user', JSON.stringify(user))
-      mastodonUser.value = user
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to get user info')
+      return res.json()
     })
-    .catch(console.error)
+    .then(user => {
+      mastodonUser.value = user
+      // Clear the URL parameters after successful auth
+      window.history.replaceState({}, '', '/settings')
+    })
+    .catch(error => {
+      console.error('Authentication error:', error)
+      // Clean up on error
+      disconnectMastodon()
+    })
   }
 })
 
 // Disconnect Mastodon
 const disconnectMastodon = () => {
-  localStorage.removeItem('mastodon_token')
-  localStorage.removeItem('mastodon_user')
-  localStorage.removeItem('mastodon_client')
+  clearAccessToken()
   mastodonToken.value = ''
   mastodonUser.value = null
+  localStorage.removeItem('mastodon_client')
+  localStorage.removeItem('mastodon_token')
+  localStorage.removeItem('mastodon_user')
+  
+  // Optional: Refresh the page to ensure clean state
+  window.location.reload()
 }
 </script>
 
