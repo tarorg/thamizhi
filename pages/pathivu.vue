@@ -47,11 +47,18 @@ interface ThumbnailUploadResponse {
   name: string
 }
 
+// Add this to your existing interfaces
+interface ThreadOption {
+  id: number
+  thread: string
+}
+
 const post = ref({
   thumbnail: null as File | null,
   thumbnailUrl: '',
   title: '',
   type: 'post',
+  thread: '',
   asset: null as File | null,
   content: {
     blocks: []
@@ -60,9 +67,57 @@ const post = ref({
 
 const editor = ref<any>(null)
 
-// Initialize EditorJS only on client-side
+// Add loading state ref
+const isThreadsLoading = ref(true)
+
+// Modify the fetchThreads function
+const fetchThreads = async () => {
+  try {
+    isThreadsLoading.value = true
+    
+    const response = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        requests: [{
+          type: "execute",
+          stmt: {
+            sql: "SELECT DISTINCT thread FROM izhai WHERE thread IS NOT NULL ORDER BY thread",
+            args: []
+          }
+        }]
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch threads')
+    }
+
+    const result = await response.json()
+    const rows = result?.results?.[0]?.response?.result?.rows || []
+    
+    threads.value = rows.map((row: any, index: number) => ({
+      id: index + 1,
+      thread: row[0]?.value || ''
+    })).filter(thread => thread.thread) // Filter out empty threads
+    
+  } catch (error) {
+    console.error('Error fetching threads:', error)
+  } finally {
+    isThreadsLoading.value = false
+  }
+}
+
+// Modify onMounted to handle loading state
 onMounted(async () => {
   if (process.client) {
+    // Load threads first
+    await fetchThreads()
+    
+    // Then initialize editor
     const EditorJS = (await import('@editorjs/editorjs')).default
     const Header = (await import('@editorjs/header')).default
     const List = (await import('@editorjs/list')).default
@@ -262,6 +317,10 @@ const handleFileChange = async () => {
     }
   }
 }
+
+// Add these refs with your other refs
+const threads = ref<ThreadOption[]>([])
+const selectedThread = ref('')
 </script>
 
 <template>
@@ -479,6 +538,8 @@ const handleFileChange = async () => {
     <PublishPanel 
       v-model="isDrawerOpen" 
       :open="isDrawerOpen"
+      :threads="threads"
+      v-model:selected-thread="post.thread"
       @update:open="isDrawerOpen = $event"
     />
   </div>

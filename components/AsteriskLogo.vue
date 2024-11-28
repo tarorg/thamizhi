@@ -11,4 +11,8 @@
       l-421.899,137.07V29.443H489.84L489.838,29.354z" 
     />
   </svg>
-</template> 
+</template>
+
+<script setup lang="ts">
+// The path is the same one used in poster.vue for consistency
+</script> 

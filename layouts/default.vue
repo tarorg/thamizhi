@@ -8,9 +8,10 @@ import {
   SidebarTrigger,
   SidebarFooter 
 } from '@/components/ui/sidebar'
-import { Asterisk, Globe, Library, MessageSquare, Sun, Moon } from 'lucide-vue-next'
+import { Globe, Library, MessageSquare, Sun, Moon, Settings } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import AsteriskLogo from '@/components/AsteriskLogo.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,7 +38,7 @@ const navigate = (path: string) => {
     <!-- Desktop Sidebar -->
     <Sidebar collapsible="icon" class="border-r bg-background hidden md:flex">
       <SidebarTrigger>
-        <Asterisk class="h-6 w-6" />
+        <AsteriskLogo class="h-6 w-6 text-foreground" />
       </SidebarTrigger>
       
       <SidebarContent>
@@ -71,6 +72,16 @@ const navigate = (path: string) => {
             <Library class="text-foreground" />
             <span>நூலகம்</span>
           </SidebarMenuButton>
+
+          <SidebarMenuButton 
+            @click="navigate('/settings')"
+            :is-active="route.path === '/settings'"
+            tooltip="Settings"
+            class="text-foreground"
+          >
+            <Settings class="text-foreground" />
+            <span>Settings</span>
+          </SidebarMenuButton>
         </SidebarMenu>
       </SidebarContent>
 
@@ -93,7 +104,7 @@ const navigate = (path: string) => {
         <Sheet v-model:open="sheetOpen">
           <SheetTrigger asChild>
             <div class="flex items-center gap-2 cursor-pointer">
-              <Asterisk class="h-6 w-6" />
+              <AsteriskLogo class="h-6 w-6 text-foreground" />
               <span class="text-lg font-semibold">தமிழி</span>
             </div>
           </SheetTrigger>
@@ -101,7 +112,7 @@ const navigate = (path: string) => {
             <div class="flex flex-col h-full bg-background">
               <div class="p-4 border-b">
                 <div class="flex items-center gap-2">
-                  <Asterisk class="h-6 w-6" />
+                  <AsteriskLogo class="h-6 w-6 text-foreground" />
                   <span class="text-lg font-semibold">தமிழி</span>
                 </div>
               </div>
@@ -137,6 +148,16 @@ const navigate = (path: string) => {
                     <Library class="mr-2 h-5 w-5" />
                     நூலகம் 
                   </Button>
+
+                  <Button 
+                    variant="ghost" 
+                    class="w-full justify-start"
+                    :class="{ 'bg-accent': route.path === '/settings' }"
+                    @click="navigate('/settings')"
+                  >
+                    <Settings class="mr-2 h-5 w-5" />
+                    Settings
+                  </Button>
                 </div>
               </div>
               
@@ -163,3 +184,7 @@ const navigate = (path: string) => {
     </main>
   </SidebarProvider>
 </template> 
+
+<style scoped>
+/* Remove the invert and filter-none styles since we're using fill-current now */
+</style> 

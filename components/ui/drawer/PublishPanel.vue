@@ -4,17 +4,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { ArrowLeftIcon } from 'lucide-vue-next'
 
-defineProps<{
-  modelValue: boolean
+interface ThreadOption {
+  id: number
+  thread: string
+}
+
+const props = defineProps<{
+  open: boolean
+  threads: ThreadOption[]
+  selectedThread: string
 }>()
 
-defineEmits<{
-  'update:modelValue': [value: boolean]
-}>()
+const emit = defineEmits(['update:open', 'update:selectedThread'])
+
+// Add loading state
+const isThreadsLoading = computed(() => props.threads.length === 0)
 
 // Add reactive state for form data
 const formData = ref({
-  collection: '',
   slug: '',
   tags: '',
   status: 'draft',
@@ -26,8 +33,8 @@ const formData = ref({
 
 <template>
   <Sheet 
-    :open="modelValue" 
-    @update:open="$emit('update:modelValue', $event)" 
+    :open="open" 
+    @update:open="$emit('update:open', $event)" 
     side="right"
     :closeButton="false"
   >
@@ -42,7 +49,7 @@ const formData = ref({
             <Button 
               variant="ghost" 
               size="icon"
-              @click="$emit('update:modelValue', false)"
+              @click="$emit('update:open', false)"
             >
               <ArrowLeftIcon class="h-4 w-4" />
             </Button>
@@ -65,18 +72,32 @@ const formData = ref({
           
           <TabsContent value="meta" class="mt-4">
             <div class="divide-y">
-              <!-- Collection -->
+              <!-- Thread -->
               <div class="flex py-4">
-                <div class="w-1/3 text-sm text-muted-foreground">Collection</div>
+                <div class="w-1/3 text-sm text-muted-foreground">Thread</div>
                 <div class="w-2/3">
-                  <select 
-                    v-model="formData.collection"
-                    class="w-full bg-transparent text-sm"
+                  <Select
+                    :value="selectedThread"
+                    @update:value="(value: string) => emit('update:selectedThread', value)"
+                    :disabled="isThreadsLoading"
                   >
-                    <option value="">Select collection...</option>
-                    <option value="blog">Blog</option>
-                    <option value="docs">Documentation</option>
-                  </select>
+                    <SelectTrigger>
+                      <SelectValue :placeholder="isThreadsLoading ? 'Loading threads...' : 'Select thread...'" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div v-if="isThreadsLoading" class="flex items-center justify-center p-2">
+                        <div class="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+                      </div>
+                      <SelectItem
+                        v-else
+                        v-for="thread in threads"
+                        :key="thread.id"
+                        :value="thread.thread"
+                      >
+                        {{ thread.thread }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
