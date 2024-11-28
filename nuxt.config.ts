@@ -25,7 +25,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'cloudflare-pages',
     prerender: {
-      crawlLinks: true,
+      crawlLinks: false,
       routes: [
         '/',
         '/noolakam',
@@ -34,6 +34,11 @@ export default defineNuxtConfig({
     }
   },
   routeRules: {
+    // Client-side only routes (no prerendering)
+    '/thamizhi': { ssr: false },
+    '/settings': { ssr: false },
+    '/izhai': { ssr: false },
+    '/poster': { ssr: false },
     // Add caching for static assets
     '/assets/**': {
       headers: {
