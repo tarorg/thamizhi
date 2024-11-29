@@ -8,23 +8,21 @@ import {
   SelectTrigger,
   SelectValue 
 } from '@/components/ui/select'
-import { GlobeIcon } from 'lucide-vue-next'
+import { useSidebar } from './utils'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
-// Language state
-const currentLanguage = ref('ta') // 'ta' for Tamil (default)
-
+const { state } = useSidebar()
+const currentLanguage = ref('TA')
 const languages = [
-  { value: 'ta', label: 'தமிழ்' },
-  { value: 'en', label: 'English' }
+  { value: 'TA', label: 'TA' },
+  { value: 'EN', label: 'EN' }
 ]
 
 const handleLanguageChange = (value: string) => {
   currentLanguage.value = value
-  // You can emit an event or handle language change logic here
 }
 </script>
 
@@ -33,7 +31,7 @@ const handleLanguageChange = (value: string) => {
     <!-- Main Menu Items -->
     <ul
       data-sidebar="menu"
-      :class="cn('flex w-full min-w-0 flex-col gap-1', props.class)"
+      :class="cn('flex w-full min-w-0 flex-col gap-1 px-2', props.class)"
     >
       <slot />
     </ul>
@@ -42,19 +40,20 @@ const handleLanguageChange = (value: string) => {
     <div class="flex-1"></div>
 
     <!-- Language Selector -->
-    <div class="px-2 mb-2">
+    <div class="px-2">
       <Select v-model="currentLanguage" @update:modelValue="handleLanguageChange">
-        <SelectTrigger class="w-full h-9">
-          <div class="flex items-center gap-2">
-            <GlobeIcon class="w-4 h-4" />
-            <SelectValue />
-          </div>
+        <SelectTrigger 
+          class="w-full h-5 bg-transparent border-0 text-xs" 
+          :class="{ 'justify-center [&>svg]:hidden': state === 'collapsed' }"
+        >
+          <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem 
             v-for="lang in languages" 
             :key="lang.value" 
             :value="lang.value"
+            class="text-xs"
           >
             {{ lang.label }}
           </SelectItem>
@@ -68,13 +67,8 @@ const handleLanguageChange = (value: string) => {
 </template>
 
 <style scoped>
-/* Custom styles for the language selector */
 :deep(.select-trigger) {
-  @apply bg-background border-muted-foreground/20;
-}
-
-:deep(.select-trigger:hover) {
-  @apply bg-muted;
+  @apply hover:bg-transparent py-0;
 }
 
 :deep(.select-content) {

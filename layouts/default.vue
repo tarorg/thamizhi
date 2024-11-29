@@ -11,7 +11,7 @@ import {
 import { Globe, Library, MessageSquare, Sun, Moon, Settings } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import AsteriskLogo from '@/components/AsteriskLogo.vue'
+import IconAsterisk from '@/components/icons/IconAsterisk.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,7 +38,7 @@ const navigate = (path: string) => {
     <!-- Desktop Sidebar -->
     <Sidebar collapsible="icon" class="border-r bg-background hidden md:flex">
       <SidebarTrigger>
-        <AsteriskLogo class="h-6 w-6 text-foreground" />
+        <IconAsterisk class="h-5 w-5 text-foreground" />
       </SidebarTrigger>
       
       <SidebarContent>
@@ -47,7 +47,7 @@ const navigate = (path: string) => {
             @click="navigate('/')"
             :is-active="route.path === '/'"
             tooltip="அலை"
-            class="text-foreground"
+            class="text-foreground hover:bg-transparent"
           >
             <Globe class="text-foreground" />
             <span>அலை</span>
@@ -57,7 +57,7 @@ const navigate = (path: string) => {
             @click="navigate('/thamizhi')"
             :is-active="route.path === '/thamizhi'"
             tooltip="தமிழி"
-            class="text-foreground"
+            class="text-foreground hover:bg-transparent"
           >
             <MessageSquare class="text-foreground" />
             <span>தமிழி</span>
@@ -67,20 +67,10 @@ const navigate = (path: string) => {
             @click="navigate('/noolakam')"
             :is-active="route.path === '/noolakam'"
             tooltip="நூலகம்"
-            class="text-foreground"
+            class="text-foreground hover:bg-transparent"
           >
             <Library class="text-foreground" />
             <span>நூலகம்</span>
-          </SidebarMenuButton>
-
-          <SidebarMenuButton 
-            @click="navigate('/settings')"
-            :is-active="route.path === '/settings'"
-            tooltip="Settings"
-            class="text-foreground"
-          >
-            <Settings class="text-foreground" />
-            <span>Settings</span>
           </SidebarMenuButton>
         </SidebarMenu>
       </SidebarContent>
@@ -89,11 +79,21 @@ const navigate = (path: string) => {
         <SidebarMenuButton 
           @click="toggleTheme"
           tooltip="Toggle Theme"
-          class="text-foreground"
+          class="text-foreground hover:bg-transparent"
         >
           <Sun v-if="!isDark" class="text-foreground" />
           <Moon v-else class="text-foreground" />
           <span>{{ isDark ? 'Dark' : 'Light' }} Mode</span>
+        </SidebarMenuButton>
+
+        <SidebarMenuButton 
+          @click="navigate('/settings')"
+          :is-active="route.path === '/settings'"
+          tooltip="Settings"
+          class="text-foreground hover:bg-transparent"
+        >
+          <Settings class="text-foreground" />
+          <span>Settings</span>
         </SidebarMenuButton>
       </SidebarFooter>
     </Sidebar>
@@ -104,7 +104,7 @@ const navigate = (path: string) => {
         <Sheet v-model:open="sheetOpen">
           <SheetTrigger asChild>
             <div class="flex items-center gap-2 cursor-pointer">
-              <AsteriskLogo class="h-6 w-6 text-foreground" />
+              <IconAsterisk class="h-5 w-5 text-foreground" />
               <span class="text-lg font-semibold">தமிழி</span>
             </div>
           </SheetTrigger>
@@ -112,7 +112,7 @@ const navigate = (path: string) => {
             <div class="flex flex-col h-full bg-background">
               <div class="p-4 border-b">
                 <div class="flex items-center gap-2">
-                  <AsteriskLogo class="h-6 w-6 text-foreground" />
+                  <IconAsterisk class="h-5 w-5 text-foreground" />
                   <span class="text-lg font-semibold">தமிழி</span>
                 </div>
               </div>
@@ -148,20 +148,20 @@ const navigate = (path: string) => {
                     <Library class="mr-2 h-5 w-5" />
                     நூலகம் 
                   </Button>
-
-                  <Button 
-                    variant="ghost" 
-                    class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/settings' }"
-                    @click="navigate('/settings')"
-                  >
-                    <Settings class="mr-2 h-5 w-5" />
-                    Settings
-                  </Button>
                 </div>
               </div>
               
               <div class="border-t p-2">
+                <Button 
+                  variant="ghost" 
+                  class="w-full justify-start"
+                  :class="{ 'bg-accent': route.path === '/settings' }"
+                  @click="navigate('/settings')"
+                >
+                  <Settings class="mr-2 h-5 w-5" />
+                  Settings
+                </Button>
+                
                 <Button 
                   variant="ghost" 
                   class="w-full justify-start"

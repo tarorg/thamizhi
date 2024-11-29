@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useSidebar } from './utils'
-import { Asterisk } from 'lucide-vue-next'
+import IconAsterisk from '@/components/icons/IconAsterisk.vue'
 
 const { toggleSidebar, state } = useSidebar()
 </script>
@@ -15,7 +15,7 @@ const { toggleSidebar, state } = useSidebar()
         'text-foreground flex items-center justify-center',
         state === 'expanded' ? 'h-8 w-8' : 'h-8 w-8'
       ]">
-        <Asterisk class="h-6 w-6" />
+        <IconAsterisk class="h-6 w-6" />
       </div>
       <h2 
         class="text-lg font-semibold text-foreground group-data-[collapsible=icon]:hidden"
