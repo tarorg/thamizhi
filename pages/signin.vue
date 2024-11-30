@@ -1,70 +1,74 @@
 <template>
-  <div class="min-h-screen flex bg-gray-50">
-    <!-- Sign In Section -->
-    <div class="w-1/2 flex items-center justify-center p-8">
-      <div class="w-full max-w-[500px]">
-        <h2 class="text-2xl text-center font-semibold">Welcome</h2>
-        <p class="text-center text-muted-foreground mt-2">
-          Sign in with your Mastodon account
-        </p>
-
-        <div class="mt-8">
-          <form @submit.prevent="handleSignIn" class="space-y-4">
-            <div class="space-y-2">
-              <Label for="mastodon-handle">Mastodon Handle</Label>
-              <Input 
-                id="mastodon-handle" 
-                v-model="mastodonHandle"
-                placeholder="@username@instance"
-                type="text"
-                :disabled="isLoading"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              variant="default"
-              class="w-full"
-              :disabled="isLoading"
-            >
-              {{ isLoading ? 'Checking...' : 'Continue with Mastodon' }}
-            </Button>
-            <p class="text-sm text-center text-muted-foreground">
-              By continuing, you agree to our Terms of Service and Privacy Policy
-            </p>
-            <p class="text-sm text-center text-muted-foreground">
-              Don't have a Mastodon account?{" "}
-              <a 
-                href="https://joinmastodon.org" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="text-[#563ACC] hover:underline"
-              >
-                Create one here
-              </a>
-            </p>
-          </form>
-
-          <!-- Error Alert -->
-          <Alert v-if="error" variant="destructive" class="mt-4">
-            <AlertCircle class="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{{ error }}</AlertDescription>
-          </Alert>
-        </div>
-      </div>
+  <div class="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Sign in with Mastodon
+      </h2>
+      <p class="mt-2 text-center text-sm text-gray-600">
+        Enter your Mastodon handle to continue
+      </p>
     </div>
 
-    <!-- Right Side Banner -->
-    <div class="w-1/2 bg-purple-100 p-8 flex flex-col justify-center items-center text-center">
-      <div 
-        class="w-full max-w-[384px] h-64 bg-cover bg-center rounded-lg mb-6"
-        style="background-image: url('/placeholder.svg?height=256&width=384')"
-      ></div>
-      <h2 class="text-2xl font-semibold text-purple-800 mb-4">Nature's Wisdom</h2>
-      <blockquote class="text-lg text-purple-700 italic">
-        "In every walk with nature one receives far more than he seeks."
-      </blockquote>
-      <p class="mt-2 text-purple-600">— John Muir</p>
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <form class="space-y-6" @submit.prevent="handleSubmit">
+          <div>
+            <label for="mastodon-handle" class="block text-sm font-medium text-gray-700">
+              Mastodon Handle
+            </label>
+            <div class="mt-1 relative rounded-md shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500 sm:text-sm">@</span>
+              </div>
+              <input
+                id="mastodon-handle"
+                v-model="mastodonHandle"
+                type="text"
+                required
+                :class="[
+                  'block w-full pl-7 pr-12 py-2 sm:text-sm rounded-md',
+                  error ? 'border-red-300 text-red-900 placeholder-red-300 focus:ring-red-500 focus:border-red-500' 
+                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                ]"
+                placeholder="username@instance"
+                :disabled="loading"
+              />
+            </div>
+            <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              :disabled="loading"
+              class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg
+                v-if="loading"
+                class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              {{ loading ? 'Signing in...' : 'Sign in' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -80,20 +84,144 @@ import AlertDescription from '../components/ui/alert/AlertDescription.vue'
 import { AlertCircle } from 'lucide-vue-next'
 
 const mastodonHandle = ref('')
-const isLoading = ref(false)
-const error = ref('')
+const loading = ref(false)
+const error = ref(null)
 
-async function handleSignIn() {
+async function checkUserInDatabase(handle: string) {
   try {
-    isLoading.value = true
-    error.value = ''
+    const cleanHandle = handle.replace(/^@/, '')
+    console.log('Clean handle:', cleanHandle)
     
-    if (!mastodonHandle.value) {
-      throw new Error('Please enter your Mastodon handle')
+    const requestBody = {
+      requests: [
+        {
+          type: "execute",
+          stmt: {
+            sql: `SELECT * FROM users WHERE mastodon_handle = '${cleanHandle}'`
+          }
+        },
+        {
+          type: "close"
+        }
+      ]
+    }
+    console.log('Request body:', JSON.stringify(requestBody, null, 2))
+    
+    // Query Turso DB to check if user exists
+    const response = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('DB check failed - Status:', response.status)
+      console.error('DB check failed - Response:', errorText)
+      throw new Error('Failed to verify user status')
     }
 
-    // Parse mastodon handle to get instance and username
-    const handleMatch = mastodonHandle.value.match(/@?([^@]+)@(.+)/)
+    const result = await response.json()
+    console.log('DB check raw response:', JSON.stringify(result, null, 2))
+    console.log('DB check results array:', result.results)
+    console.log('First result rows:', result.results?.[0]?.rows)
+    
+    // Check if any user was found
+    const userExists = result.results?.[0]?.rows?.length > 0
+    console.log('User exists:', userExists)
+    
+    return userExists
+  } catch (e) {
+    console.error('Error checking user in database:', e)
+    throw new Error('Failed to check user in database')
+  }
+}
+
+async function verifyMastodonAccount(handle: string) {
+  try {
+    const cleanHandle = handle.replace(/^@/, '').split('@')[0] // Get just the username part
+    console.log('Verifying Mastodon handle:', cleanHandle)
+    
+    const response = await fetch(`https://mastodon.social/api/v1/accounts/lookup?acct=${cleanHandle}`)
+    
+    if (!response.ok) {
+      throw new Error('Could not verify Mastodon account. Please check your handle.')
+    }
+
+    const accountData = await response.json()
+    console.log('Mastodon account data:', accountData)
+    return accountData
+  } catch (e) {
+    console.error('Error verifying Mastodon account:', e)
+    throw new Error('Could not verify Mastodon account. Please check your handle.')
+  }
+}
+
+async function createUserInDatabase(userData: any) {
+  try {
+    const requestBody = {
+      requests: [
+        {
+          type: "execute",
+          stmt: {
+            sql: `INSERT INTO users (
+              mastodon_id, 
+              mastodon_handle, 
+              mastodon_instance, 
+              display_name, 
+              avatar_url,
+              created_at,
+              updated_at
+            ) VALUES (
+              '${userData.id}',
+              '${userData.acct}',
+              'mastodon.social',
+              '${userData.display_name || userData.username}',
+              '${userData.avatar}',
+              DATETIME('now'),
+              DATETIME('now')
+            )`
+          }
+        },
+        {
+          type: "close"
+        }
+      ]
+    }
+    
+    console.log('Create user request:', JSON.stringify(requestBody, null, 2))
+
+    const response = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('DB create failed - Status:', response.status)
+      console.error('DB create failed - Response:', errorText)
+      throw new Error('Failed to create user account')
+    }
+
+    const result = await response.json()
+    console.log('Create user response:', JSON.stringify(result, null, 2))
+    return result
+  } catch (e) {
+    console.error('Create user error:', e)
+    throw new Error('Failed to create user account')
+  }
+}
+
+async function proceedToMastodonOAuth(handle: string) {
+  try {
+    const handleMatch = handle.match(/@?([^@]+)@(.+)/)
     if (!handleMatch) {
       throw new Error('Invalid Mastodon handle format. Please use format: @username@instance')
     }
@@ -101,120 +229,64 @@ async function handleSignIn() {
     const [, username, instance] = handleMatch
     const cleanHandle = `${username}@${instance}`
 
-    try {
-      // Try to fetch user info from Mastodon instance first
-      const mastodonResponse = await fetch(`https://${instance}/api/v1/accounts/lookup?acct=${username}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        }
-      })
+    // Use router for client-side navigation
+    const router = useRouter()
+    
+    // Build the login URL
+    const loginUrl = `/api/auth/mastodon/login?${new URLSearchParams({
+      instance: instance,
+      handle: cleanHandle
+    }).toString()}`
 
-      if (!mastodonResponse.ok) {
-        throw new Error('Could not verify Mastodon account. Please check your handle.')
-      }
+    // Navigate to the login endpoint
+    window.location.href = loginUrl
+  } catch (e) {
+    console.error('Error proceeding to Mastodon OAuth:', e)
+    throw e
+  }
+}
 
-      const mastodonData = await mastodonResponse.json()
-      
-      if (!mastodonData.id) {
-        throw new Error('Invalid Mastodon account data received')
-      }
+async function handleSubmit() {
+  error.value = null
+  loading.value = true
 
-      // Check if user exists in Turso DB
-      const checkResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          requests: [{
-            type: "execute",
-            stmt: {
-              sql: "SELECT * FROM users WHERE mastodon_handle = ?",
-              args: [
-                { type: "text", value: cleanHandle }
-              ]
-            }
-          }]
-        })
-      })
-
-      const checkResult = await checkResponse.json()
-      console.log('User check result:', checkResult) // Debug log
-      
-      if (!checkResponse.ok) {
-        console.error('Check response error:', await checkResponse.text())
-        throw new Error('Failed to check user status')
-      }
-
-      const userExists = checkResult.results?.[0]?.rows?.length > 0
-
-      if (!userExists) {
-        // Create new user in Turso DB
-        const createResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            requests: [{
-              type: "execute",
-              stmt: {
-                sql: `INSERT INTO users (
-                  mastodon_id, 
-                  mastodon_instance, 
-                  mastodon_handle, 
-                  display_name, 
-                  avatar_url, 
-                  website, 
-                  role,
-                  created_at,
-                  updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                args: [
-                  { type: "text", value: mastodonData.id },
-                  { type: "text", value: instance },
-                  { type: "text", value: cleanHandle },
-                  { type: "text", value: mastodonData.display_name || username },
-                  { type: "text", value: mastodonData.avatar || '' },
-                  { type: "text", value: mastodonData.website || '' },
-                  { type: "text", value: 'subscriber' },
-                  { type: "text", value: new Date().toISOString() },
-                  { type: "text", value: new Date().toISOString() }
-                ]
-              }
-            }]
-          })
-        })
-
-        if (!createResponse.ok) {
-          const errorData = await createResponse.text()
-          console.error('Create user error:', errorData)
-          throw new Error('Failed to create user account')
-        }
-
-        const createResult = await createResponse.json()
-        console.log('User creation result:', createResult) // Debug log
-      }
-
-      // Redirect to Mastodon OAuth
-      window.location.href = `/api/auth/mastodon/login?instance=${encodeURIComponent(instance)}&handle=${encodeURIComponent(cleanHandle)}`
-
-    } catch (fetchError: any) {
-      console.error('API Error:', fetchError)
-      if (fetchError.message.includes('Failed to fetch')) {
-        throw new Error('Network error. Please check your connection and try again.')
-      }
-      throw fetchError
+  try {
+    if (!mastodonHandle.value) {
+      throw new Error('Please enter your Mastodon handle')
     }
 
-  } catch (err: any) {
-    error.value = err.message || 'An error occurred'
-    console.error('Sign in error:', err)
+    // Validate handle format
+    const handleMatch = mastodonHandle.value.match(/@?([^@]+)@(.+)/)
+    if (!handleMatch) {
+      throw new Error('Invalid Mastodon handle format. Please use format: @username@instance')
+    }
+
+    console.log('Checking user in database...')
+    const userExists = await checkUserInDatabase(mastodonHandle.value)
+    
+    if (userExists) {
+      console.log('User exists, proceeding to OAuth...')
+      // User exists, proceed directly to Mastodon OAuth
+      await proceedToMastodonOAuth(mastodonHandle.value)
+    } else {
+      console.log('User not found, verifying with Mastodon...')
+      // User doesn't exist, verify with Mastodon first
+      const verified = await verifyMastodonAccount(mastodonHandle.value)
+      if (verified) {
+        console.log('Mastodon verification successful, creating user...')
+        // Create user in database
+        await createUserInDatabase(verified)
+        // Then proceed to OAuth
+        await proceedToMastodonOAuth(mastodonHandle.value)
+      } else {
+        error.value = 'Could not verify Mastodon account. Please check your handle.'
+      }
+    }
+  } catch (e) {
+    console.error('Sign in error:', e)
+    error.value = e.message || 'An error occurred during sign in'
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
 }
 </script>
