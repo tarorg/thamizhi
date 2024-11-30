@@ -9,7 +9,7 @@ import {
   SidebarTrigger,
   SidebarFooter 
 } from '@/components/ui/sidebar'
-import { Globe, Library, MessageSquare, Sun, Moon, Settings } from 'lucide-vue-next'
+import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import IconAsterisk from '@/components/icons/IconAsterisk.vue'
@@ -96,6 +96,16 @@ const navigate = (path: string) => {
           <Settings class="text-foreground" />
           <span>Settings</span>
         </SidebarMenuButton>
+
+        <SidebarMenuButton 
+          @click="navigate('/signin')"
+          :is-active="route.path === '/signin'"
+          tooltip="Sign In"
+          class="text-foreground hover:bg-transparent"
+        >
+          <LogIn class="text-foreground" />
+          <span>Sign In</span>
+        </SidebarMenuButton>
       </SidebarFooter>
     </Sidebar>
 
@@ -161,6 +171,16 @@ const navigate = (path: string) => {
                 >
                   <Settings class="mr-2 h-5 w-5" />
                   Settings
+                </Button>
+
+                <Button 
+                  variant="ghost" 
+                  class="w-full justify-start"
+                  :class="{ 'bg-accent': route.path === '/signin' }"
+                  @click="navigate('/signin')"
+                >
+                  <LogIn class="mr-2 h-5 w-5" />
+                  Sign In
                 </Button>
                 
                 <Button 
