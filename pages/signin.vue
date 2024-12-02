@@ -78,6 +78,10 @@ import { ref } from 'vue'
 import { useRouter } from '#imports'
 import { useMastodon } from '~/composables/useMastodon'
 
+definePageMeta({
+  layout: 'auth'
+})
+
 const mastodonHandle = ref('')
 const loading = ref(false)
 const error = ref<string | null>(null)

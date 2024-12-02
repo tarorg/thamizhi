@@ -15,15 +15,19 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import IconAsterisk from '@/components/icons/IconAsterisk.vue'
 import { useMastodon } from '~/composables/useMastodon'
+import { computed } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
 const isDark = ref(false)
 const sheetOpen = ref(false)
 
-// Initialize Mastodon composable
-const mastodonAuth = useMastodon()
-const { isAuthenticated, mastodonUser, logout } = mastodonAuth
+// Initialize Mastodon composable with reactive state
+const { isAuthenticated, mastodonUser, logout } = useMastodon()
+
+// Make auth state reactive
+const isLoggedIn = computed(() => isAuthenticated.value)
+const currentUser = computed(() => mastodonUser.value)
 
 onMounted(() => {
   document.documentElement.classList.remove('dark')
@@ -42,11 +46,15 @@ const navigate = (path: string) => {
 const handleLogout = async () => {
   await logout()
   sheetOpen.value = false
+  router.push('/signin')
 }
 
-// Debug auth state
-watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
+// Watch for auth state changes
+watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
   console.log('Auth state changed:', { isAuthenticated: newAuth, user: newUser })
+  if (!newAuth) {
+    router.push('/signin')
+  }
 })
 </script>
 
@@ -58,22 +66,9 @@ watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
         <IconAsterisk class="h-5 w-5 text-foreground" />
       </SidebarTrigger>
       
-      <SidebarContent>
-        <!-- User Profile Section -->
-        <div v-if="isAuthenticated && mastodonUser" class="px-2 py-4">
-          <div class="flex items-center space-x-4 mb-4">
-            <Avatar>
-              <AvatarImage :src="mastodonUser.avatar" :alt="mastodonUser.display_name" />
-              <AvatarFallback>{{ mastodonUser.display_name?.charAt(0) }}</AvatarFallback>
-            </Avatar>
-            <div class="space-y-1">
-              <p class="text-sm font-medium leading-none">{{ mastodonUser.display_name }}</p>
-              <p class="text-xs text-muted-foreground">@{{ mastodonUser.acct }}</p>
-            </div>
-          </div>
-        </div>
-
-        <SidebarMenu>
+      <SidebarContent class="flex flex-col h-full">
+        <!-- Main Navigation -->
+        <SidebarMenu class="flex-none">
           <SidebarMenuButton 
             @click="navigate('/')"
             :is-active="route.path === '/'"
@@ -104,62 +99,51 @@ watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
             <span>நூலகம்</span>
           </SidebarMenuButton>
         </SidebarMenu>
+
+        <!-- Spacer -->
+        <div class="flex-1"></div>
+
+        <!-- Bottom Section -->
+        <div class="mt-auto">
+          <!-- User Profile Section -->
+          <div v-if="isLoggedIn" class="px-2 py-4 border-t cursor-pointer" @click="navigate('/settings')">
+            <div class="flex items-center space-x-4">
+              <Avatar class="h-8 w-8">
+                <AvatarImage v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.display_name" />
+                <AvatarFallback>{{ currentUser?.display_name?.charAt(0) || '?' }}</AvatarFallback>
+              </Avatar>
+              <div class="space-y-1">
+                <p class="text-sm font-medium leading-none">{{ currentUser?.display_name }}</p>
+                <p class="text-xs text-muted-foreground">@{{ currentUser?.acct }}</p>
+              </div>
+            </div>
+          </div>
+          <div v-else class="px-2 py-4 border-t">
+            <SidebarMenuButton 
+              @click="navigate('/signin')"
+              :is-active="route.path === '/signin'"
+              tooltip="Sign In"
+              class="text-foreground hover:bg-transparent"
+            >
+              <LogIn class="text-foreground" />
+              <span>Sign In</span>
+            </SidebarMenuButton>
+          </div>
+
+          <!-- Settings and Theme -->
+          <div class="border-t">
+            <SidebarMenuButton 
+              @click="toggleTheme"
+              tooltip="Toggle Theme"
+              class="text-foreground hover:bg-transparent"
+            >
+              <Sun v-if="!isDark" class="text-foreground" />
+              <Moon v-else class="text-foreground" />
+              <span>{{ isDark ? 'Dark' : 'Light' }} Mode</span>
+            </SidebarMenuButton>
+          </div>
+        </div>
       </SidebarContent>
-
-      <SidebarFooter>
-        <SidebarMenuButton 
-          @click="toggleTheme"
-          tooltip="Toggle Theme"
-          class="text-foreground hover:bg-transparent"
-        >
-          <Sun v-if="!isDark" class="text-foreground" />
-          <Moon v-else class="text-foreground" />
-          <span>{{ isDark ? 'Dark' : 'Light' }} Mode</span>
-        </SidebarMenuButton>
-
-        <SidebarMenuButton 
-          @click="navigate('/settings')"
-          :is-active="route.path === '/settings'"
-          tooltip="Settings"
-          class="text-foreground hover:bg-transparent"
-        >
-          <Settings class="text-foreground" />
-          <span>Settings</span>
-        </SidebarMenuButton>
-
-        <!-- Authentication Buttons -->
-        <template v-if="isAuthenticated">
-          <SidebarMenuButton 
-            @click="navigate('/profile')"
-            :is-active="route.path === '/profile'"
-            tooltip="Profile"
-            class="text-foreground hover:bg-transparent"
-          >
-            <User class="text-foreground" />
-            <span>Profile</span>
-          </SidebarMenuButton>
-
-          <SidebarMenuButton 
-            @click="handleLogout"
-            tooltip="Sign Out"
-            class="text-foreground hover:bg-transparent"
-          >
-            <LogOut class="text-foreground" />
-            <span>Sign Out</span>
-          </SidebarMenuButton>
-        </template>
-        <template v-else>
-          <SidebarMenuButton 
-            @click="navigate('/signin')"
-            :is-active="route.path === '/signin'"
-            tooltip="Sign In"
-            class="text-foreground hover:bg-transparent"
-          >
-            <LogIn class="text-foreground" />
-            <span>Sign In</span>
-          </SidebarMenuButton>
-        </template>
-      </SidebarFooter>
     </Sidebar>
 
     <!-- Mobile Menu -->
@@ -175,14 +159,14 @@ watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
           <SheetContent side="left" class="w-[250px] p-0">
             <div class="flex flex-col h-full bg-background">
               <div class="p-4 border-b">
-                <div v-if="isAuthenticated && mastodonUser" class="flex items-center space-x-4">
+                <div v-if="isLoggedIn && currentUser" class="flex items-center space-x-4">
                   <Avatar>
-                    <AvatarImage :src="mastodonUser.avatar" :alt="mastodonUser.display_name" />
-                    <AvatarFallback>{{ mastodonUser.display_name?.charAt(0) }}</AvatarFallback>
+                    <AvatarImage :src="currentUser.avatar" :alt="currentUser.display_name" />
+                    <AvatarFallback>{{ currentUser.display_name?.charAt(0) }}</AvatarFallback>
                   </Avatar>
                   <div class="space-y-1">
-                    <p class="text-sm font-medium leading-none">{{ mastodonUser.display_name }}</p>
-                    <p class="text-xs text-muted-foreground">@{{ mastodonUser.acct }}</p>
+                    <p class="text-sm font-medium leading-none">{{ currentUser.display_name }}</p>
+                    <p class="text-xs text-muted-foreground">@{{ currentUser.acct }}</p>
                   </div>
                 </div>
                 <div v-else class="flex items-center gap-2">
@@ -237,23 +221,13 @@ watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
                 </Button>
 
                 <!-- Authentication Buttons for Mobile -->
-                <template v-if="isAuthenticated">
-                  <Button 
-                    variant="ghost" 
-                    class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/profile' }"
-                    @click="navigate('/profile')"
-                  >
-                    <User class="mr-2 h-5 w-5" />
-                    Profile
-                  </Button>
-
+                <template v-if="isLoggedIn">
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
                     @click="handleLogout"
                   >
-                    <LogOut class="mr-2 h-5 w-5" />
+                    <LogOut class="mr-2 h-4 w-4" />
                     Sign Out
                   </Button>
                 </template>
@@ -261,10 +235,9 @@ watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/signin' }"
                     @click="navigate('/signin')"
                   >
-                    <LogIn class="mr-2 h-5 w-5" />
+                    <LogIn class="mr-2 h-4 w-4" />
                     Sign In
                   </Button>
                 </template>
