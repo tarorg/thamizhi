@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { 
   Sidebar, 
   SidebarContent, 
@@ -9,15 +9,21 @@ import {
   SidebarTrigger,
   SidebarFooter 
 } from '@/components/ui/sidebar'
-import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn } from 'lucide-vue-next'
+import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn, LogOut, User } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import IconAsterisk from '@/components/icons/IconAsterisk.vue'
+import { useMastodon } from '~/composables/useMastodon'
 
 const route = useRoute()
 const router = useRouter()
 const isDark = ref(false)
 const sheetOpen = ref(false)
+
+// Initialize Mastodon composable
+const mastodonAuth = useMastodon()
+const { isAuthenticated, mastodonUser, logout } = mastodonAuth
 
 onMounted(() => {
   document.documentElement.classList.remove('dark')
@@ -32,6 +38,16 @@ const navigate = (path: string) => {
   router.push(path)
   sheetOpen.value = false // Close sheet after navigation
 }
+
+const handleLogout = async () => {
+  await logout()
+  sheetOpen.value = false
+}
+
+// Debug auth state
+watch([isAuthenticated, mastodonUser], ([newAuth, newUser]) => {
+  console.log('Auth state changed:', { isAuthenticated: newAuth, user: newUser })
+})
 </script>
 
 <template>
@@ -43,6 +59,20 @@ const navigate = (path: string) => {
       </SidebarTrigger>
       
       <SidebarContent>
+        <!-- User Profile Section -->
+        <div v-if="isAuthenticated && mastodonUser" class="px-2 py-4">
+          <div class="flex items-center space-x-4 mb-4">
+            <Avatar>
+              <AvatarImage :src="mastodonUser.avatar" :alt="mastodonUser.display_name" />
+              <AvatarFallback>{{ mastodonUser.display_name?.charAt(0) }}</AvatarFallback>
+            </Avatar>
+            <div class="space-y-1">
+              <p class="text-sm font-medium leading-none">{{ mastodonUser.display_name }}</p>
+              <p class="text-xs text-muted-foreground">@{{ mastodonUser.acct }}</p>
+            </div>
+          </div>
+        </div>
+
         <SidebarMenu>
           <SidebarMenuButton 
             @click="navigate('/')"
@@ -97,15 +127,38 @@ const navigate = (path: string) => {
           <span>Settings</span>
         </SidebarMenuButton>
 
-        <SidebarMenuButton 
-          @click="navigate('/signin')"
-          :is-active="route.path === '/signin'"
-          tooltip="Sign In"
-          class="text-foreground hover:bg-transparent"
-        >
-          <LogIn class="text-foreground" />
-          <span>Sign In</span>
-        </SidebarMenuButton>
+        <!-- Authentication Buttons -->
+        <template v-if="isAuthenticated">
+          <SidebarMenuButton 
+            @click="navigate('/profile')"
+            :is-active="route.path === '/profile'"
+            tooltip="Profile"
+            class="text-foreground hover:bg-transparent"
+          >
+            <User class="text-foreground" />
+            <span>Profile</span>
+          </SidebarMenuButton>
+
+          <SidebarMenuButton 
+            @click="handleLogout"
+            tooltip="Sign Out"
+            class="text-foreground hover:bg-transparent"
+          >
+            <LogOut class="text-foreground" />
+            <span>Sign Out</span>
+          </SidebarMenuButton>
+        </template>
+        <template v-else>
+          <SidebarMenuButton 
+            @click="navigate('/signin')"
+            :is-active="route.path === '/signin'"
+            tooltip="Sign In"
+            class="text-foreground hover:bg-transparent"
+          >
+            <LogIn class="text-foreground" />
+            <span>Sign In</span>
+          </SidebarMenuButton>
+        </template>
       </SidebarFooter>
     </Sidebar>
 
@@ -122,7 +175,17 @@ const navigate = (path: string) => {
           <SheetContent side="left" class="w-[250px] p-0">
             <div class="flex flex-col h-full bg-background">
               <div class="p-4 border-b">
-                <div class="flex items-center gap-2">
+                <div v-if="isAuthenticated && mastodonUser" class="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarImage :src="mastodonUser.avatar" :alt="mastodonUser.display_name" />
+                    <AvatarFallback>{{ mastodonUser.display_name?.charAt(0) }}</AvatarFallback>
+                  </Avatar>
+                  <div class="space-y-1">
+                    <p class="text-sm font-medium leading-none">{{ mastodonUser.display_name }}</p>
+                    <p class="text-xs text-muted-foreground">@{{ mastodonUser.acct }}</p>
+                  </div>
+                </div>
+                <div v-else class="flex items-center gap-2">
                   <IconAsterisk class="h-5 w-5 text-foreground" />
                   <span class="text-lg font-semibold">தமிழி</span>
                 </div>
@@ -173,15 +236,38 @@ const navigate = (path: string) => {
                   Settings
                 </Button>
 
-                <Button 
-                  variant="ghost" 
-                  class="w-full justify-start"
-                  :class="{ 'bg-accent': route.path === '/signin' }"
-                  @click="navigate('/signin')"
-                >
-                  <LogIn class="mr-2 h-5 w-5" />
-                  Sign In
-                </Button>
+                <!-- Authentication Buttons for Mobile -->
+                <template v-if="isAuthenticated">
+                  <Button 
+                    variant="ghost" 
+                    class="w-full justify-start"
+                    :class="{ 'bg-accent': route.path === '/profile' }"
+                    @click="navigate('/profile')"
+                  >
+                    <User class="mr-2 h-5 w-5" />
+                    Profile
+                  </Button>
+
+                  <Button 
+                    variant="ghost" 
+                    class="w-full justify-start"
+                    @click="handleLogout"
+                  >
+                    <LogOut class="mr-2 h-5 w-5" />
+                    Sign Out
+                  </Button>
+                </template>
+                <template v-else>
+                  <Button 
+                    variant="ghost" 
+                    class="w-full justify-start"
+                    :class="{ 'bg-accent': route.path === '/signin' }"
+                    @click="navigate('/signin')"
+                  >
+                    <LogIn class="mr-2 h-5 w-5" />
+                    Sign In
+                  </Button>
+                </template>
                 
                 <Button 
                   variant="ghost" 
@@ -200,12 +286,8 @@ const navigate = (path: string) => {
     </div>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-hidden bg-background md:mt-0 mt-[60px]">
+    <div class="flex-1 md:ml-[250px] pt-[60px] md:pt-0">
       <slot />
-    </main>
+    </div>
   </SidebarProvider>
-</template> 
-
-<style scoped>
-/* Remove the invert and filter-none styles since we're using fill-current now */
-</style> 
+</template>

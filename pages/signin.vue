@@ -75,77 +75,25 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Label } from '../components/ui/label'
-import { Input } from '../components/ui/input'
-import { Button } from '../components/ui/button'
-import Alert from '../components/ui/alert/Alert.vue'
-import AlertTitle from '../components/ui/alert/AlertTitle.vue'
-import AlertDescription from '../components/ui/alert/AlertDescription.vue'
-import { AlertCircle } from 'lucide-vue-next'
+import { useRouter } from '#imports'
+import { useMastodon } from '~/composables/useMastodon'
 
 const mastodonHandle = ref('')
 const loading = ref(false)
-const error = ref(null)
-
-async function checkUserInDatabase(handle: string) {
-  try {
-    const cleanHandle = handle.replace(/^@/, '')
-    console.log('Clean handle:', cleanHandle)
-    
-    const requestBody = {
-      requests: [
-        {
-          type: "execute",
-          stmt: {
-            sql: `SELECT * FROM users WHERE mastodon_handle = '${cleanHandle}'`
-          }
-        },
-        {
-          type: "close"
-        }
-      ]
-    }
-    console.log('Request body:', JSON.stringify(requestBody, null, 2))
-    
-    // Query Turso DB to check if user exists
-    const response = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('DB check failed - Status:', response.status)
-      console.error('DB check failed - Response:', errorText)
-      throw new Error('Failed to verify user status')
-    }
-
-    const result = await response.json()
-    console.log('DB check raw response:', JSON.stringify(result, null, 2))
-    console.log('DB check results array:', result.results)
-    console.log('First result rows:', result.results?.[0]?.rows)
-    
-    // Check if any user was found
-    const userExists = result.results?.[0]?.rows?.length > 0
-    console.log('User exists:', userExists)
-    
-    return userExists
-  } catch (e) {
-    console.error('Error checking user in database:', e)
-    throw new Error('Failed to check user in database')
-  }
-}
+const error = ref<string | null>(null)
+const { setAccessToken } = useMastodon()
 
 async function verifyMastodonAccount(handle: string) {
   try {
-    const cleanHandle = handle.replace(/^@/, '').split('@')[0] // Get just the username part
-    console.log('Verifying Mastodon handle:', cleanHandle)
+    const handleMatch = handle.match(/@?([^@]+)@(.+)/)
+    if (!handleMatch) {
+      throw new Error('Invalid Mastodon handle format. Please use format: @username@instance')
+    }
+
+    const [, username, instance] = handleMatch
+    console.log('Verifying Mastodon handle:', username, 'on instance:', instance)
     
-    const response = await fetch(`https://mastodon.social/api/v1/accounts/lookup?acct=${cleanHandle}`)
+    const response = await fetch(`https://${instance}/api/v1/accounts/lookup?acct=${username}`)
     
     if (!response.ok) {
       throw new Error('Could not verify Mastodon account. Please check your handle.')
@@ -160,65 +108,6 @@ async function verifyMastodonAccount(handle: string) {
   }
 }
 
-async function createUserInDatabase(userData: any) {
-  try {
-    const requestBody = {
-      requests: [
-        {
-          type: "execute",
-          stmt: {
-            sql: `INSERT INTO users (
-              mastodon_id, 
-              mastodon_handle, 
-              mastodon_instance, 
-              display_name, 
-              avatar_url,
-              created_at,
-              updated_at
-            ) VALUES (
-              '${userData.id}',
-              '${userData.acct}',
-              'mastodon.social',
-              '${userData.display_name || userData.username}',
-              '${userData.avatar}',
-              DATETIME('now'),
-              DATETIME('now')
-            )`
-          }
-        },
-        {
-          type: "close"
-        }
-      ]
-    }
-    
-    console.log('Create user request:', JSON.stringify(requestBody, null, 2))
-
-    const response = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('DB create failed - Status:', response.status)
-      console.error('DB create failed - Response:', errorText)
-      throw new Error('Failed to create user account')
-    }
-
-    const result = await response.json()
-    console.log('Create user response:', JSON.stringify(result, null, 2))
-    return result
-  } catch (e) {
-    console.error('Create user error:', e)
-    throw new Error('Failed to create user account')
-  }
-}
-
 async function proceedToMastodonOAuth(handle: string) {
   try {
     const handleMatch = handle.match(/@?([^@]+)@(.+)/)
@@ -229,13 +118,15 @@ async function proceedToMastodonOAuth(handle: string) {
     const [, username, instance] = handleMatch
     const cleanHandle = `${username}@${instance}`
 
-    // Use router for client-side navigation
-    const router = useRouter()
+    // Generate state parameter for CSRF protection
+    const state = Math.random().toString(36).substring(2)
+    sessionStorage.setItem('oauth_state', state)
     
-    // Build the login URL
+    // Build the login URL with state parameter
     const loginUrl = `/api/auth/mastodon/login?${new URLSearchParams({
-      instance: instance,
-      handle: cleanHandle
+      instance,
+      handle: cleanHandle,
+      state
     }).toString()}`
 
     // Navigate to the login endpoint
@@ -255,32 +146,14 @@ async function handleSubmit() {
       throw new Error('Please enter your Mastodon handle')
     }
 
-    // Validate handle format
-    const handleMatch = mastodonHandle.value.match(/@?([^@]+)@(.+)/)
-    if (!handleMatch) {
-      throw new Error('Invalid Mastodon handle format. Please use format: @username@instance')
-    }
-
-    console.log('Checking user in database...')
-    const userExists = await checkUserInDatabase(mastodonHandle.value)
-    
-    if (userExists) {
-      console.log('User exists, proceeding to OAuth...')
-      // User exists, proceed directly to Mastodon OAuth
+    // Verify with Mastodon
+    console.log('Verifying with Mastodon...')
+    const verified = await verifyMastodonAccount(mastodonHandle.value)
+    if (verified) {
+      console.log('Mastodon verification successful, proceeding to OAuth...')
       await proceedToMastodonOAuth(mastodonHandle.value)
     } else {
-      console.log('User not found, verifying with Mastodon...')
-      // User doesn't exist, verify with Mastodon first
-      const verified = await verifyMastodonAccount(mastodonHandle.value)
-      if (verified) {
-        console.log('Mastodon verification successful, creating user...')
-        // Create user in database
-        await createUserInDatabase(verified)
-        // Then proceed to OAuth
-        await proceedToMastodonOAuth(mastodonHandle.value)
-      } else {
-        error.value = 'Could not verify Mastodon account. Please check your handle.'
-      }
+      error.value = 'Could not verify Mastodon account. Please check your handle.'
     }
   } catch (e) {
     console.error('Sign in error:', e)
