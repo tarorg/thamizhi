@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { 
   Sidebar, 
   SidebarContent, 
@@ -9,18 +9,55 @@ import {
   SidebarTrigger,
   SidebarFooter 
 } from '@/components/ui/sidebar'
-import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn } from 'lucide-vue-next'
+import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn, LogOut, User } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
 import IconAsterisk from '@/components/icons/IconAsterisk.vue'
+import { useMastodon } from '@/composables/useMastodon'
 
 const route = useRoute()
 const router = useRouter()
 const isDark = ref(false)
 const sheetOpen = ref(false)
+const showProfileMenu = ref(false)
+const { mastodonUser, accessToken, validateToken, signOut } = useMastodon()
 
-onMounted(() => {
-  document.documentElement.classList.remove('dark')
+const isAuthenticated = computed(() => {
+  const hasAuth = !!accessToken.value && !!mastodonUser.value
+  console.log('Authentication state:', { 
+    hasToken: !!accessToken.value,
+    hasUser: !!mastodonUser.value,
+    user: mastodonUser.value,
+    isAuth: hasAuth
+  })
+  return hasAuth
+})
+
+// Watch for changes in authentication state
+watch([accessToken, mastodonUser], async ([newToken, newUser]) => {
+  console.log('Auth state changed:', { 
+    hasToken: !!newToken,
+    hasUser: !!newUser,
+    user: newUser
+  })
+  if (newToken && !newUser) {
+    const valid = await validateToken()
+    console.log('Token validation result:', valid)
+  }
+})
+
+onMounted(async () => {
+  console.log('Layout mounted, checking auth state')
+  if (accessToken.value) {
+    const valid = await validateToken()
+    console.log('Initial token validation:', valid)
+  }
 })
 
 const toggleTheme = () => {
@@ -31,6 +68,13 @@ const toggleTheme = () => {
 const navigate = (path: string) => {
   router.push(path)
   sheetOpen.value = false // Close sheet after navigation
+  showProfileMenu.value = false // Close profile menu
+}
+
+const handleSignOut = async () => {
+  showProfileMenu.value = false // Close profile menu
+  signOut()
+  await router.push('/')
 }
 </script>
 
@@ -43,6 +87,41 @@ const navigate = (path: string) => {
       </SidebarTrigger>
       
       <SidebarContent>
+        <!-- Profile Section -->
+        <div v-if="isAuthenticated && mastodonUser" class="p-4 border-b">
+          <Popover v-model:open="showProfileMenu">
+            <PopoverTrigger as-child>
+              <Button 
+                variant="ghost" 
+                class="w-full p-2 h-auto hover:bg-accent"
+              >
+                <div class="flex items-center space-x-3 w-full">
+                  <img 
+                    :src="mastodonUser.avatar" 
+                    :alt="mastodonUser.display_name"
+                    class="w-8 h-8 rounded-full"
+                    @error="$event.target.src = 'https://mastodon.social/avatars/original/missing.png'"
+                  />
+                  <div class="flex flex-col overflow-hidden text-left">
+                    <span class="font-medium text-sm truncate">{{ mastodonUser.display_name }}</span>
+                    <span class="text-xs text-muted-foreground truncate">@{{ mastodonUser.username }}</span>
+                  </div>
+                </div>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-56 p-2">
+              <Button 
+                variant="ghost" 
+                class="w-full justify-start"
+                @click="handleSignOut"
+              >
+                <LogOut class="mr-2 h-5 w-5" />
+                Sign Out
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
+        
         <SidebarMenu>
           <SidebarMenuButton 
             @click="navigate('/')"
@@ -88,16 +167,7 @@ const navigate = (path: string) => {
         </SidebarMenuButton>
 
         <SidebarMenuButton 
-          @click="navigate('/settings')"
-          :is-active="route.path === '/settings'"
-          tooltip="Settings"
-          class="text-foreground hover:bg-transparent"
-        >
-          <Settings class="text-foreground" />
-          <span>Settings</span>
-        </SidebarMenuButton>
-
-        <SidebarMenuButton 
+          v-if="!isAuthenticated"
           @click="navigate('/signin')"
           :is-active="route.path === '/signin'"
           tooltip="Sign In"
@@ -127,7 +197,6 @@ const navigate = (path: string) => {
                   <span class="text-lg font-semibold">தமிழி</span>
                 </div>
               </div>
-              
               <div class="flex-1 p-2">
                 <div class="space-y-2">
                   <Button 
@@ -161,28 +230,8 @@ const navigate = (path: string) => {
                   </Button>
                 </div>
               </div>
-              
-              <div class="border-t p-2">
-                <Button 
-                  variant="ghost" 
-                  class="w-full justify-start"
-                  :class="{ 'bg-accent': route.path === '/settings' }"
-                  @click="navigate('/settings')"
-                >
-                  <Settings class="mr-2 h-5 w-5" />
-                  Settings
-                </Button>
-
-                <Button 
-                  variant="ghost" 
-                  class="w-full justify-start"
-                  :class="{ 'bg-accent': route.path === '/signin' }"
-                  @click="navigate('/signin')"
-                >
-                  <LogIn class="mr-2 h-5 w-5" />
-                  Sign In
-                </Button>
-                
+              <div class="border-t p-2 space-y-2">
+                <!-- Theme Toggle -->
                 <Button 
                   variant="ghost" 
                   class="w-full justify-start"
@@ -192,6 +241,60 @@ const navigate = (path: string) => {
                   <Moon v-else class="mr-2 h-5 w-5" />
                   {{ isDark ? 'Dark' : 'Light' }} Mode
                 </Button>
+
+                <!-- Sign In / Profile -->
+                <Button 
+                  v-if="!isAuthenticated"
+                  variant="ghost" 
+                  class="w-full justify-start"
+                  :class="{ 'bg-accent': route.path === '/signin' }"
+                  @click="navigate('/signin')"
+                >
+                  <LogIn class="mr-2 h-5 w-5" />
+                  Sign In
+                </Button>
+
+                <div v-else>
+                  <Popover v-model:open="showProfileMenu">
+                    <PopoverTrigger as-child>
+                      <Button 
+                        variant="ghost" 
+                        class="w-full p-2 h-auto hover:bg-accent"
+                      >
+                        <div class="flex items-center space-x-3 w-full">
+                          <img 
+                            :src="mastodonUser?.avatar" 
+                            :alt="mastodonUser?.display_name"
+                            class="w-8 h-8 rounded-full"
+                            @error="$event.target.src = 'https://mastodon.social/avatars/original/missing.png'"
+                          />
+                          <div class="flex flex-col overflow-hidden text-left">
+                            <span class="font-medium text-sm truncate">{{ mastodonUser?.display_name }}</span>
+                            <span class="text-xs text-muted-foreground truncate">@{{ mastodonUser?.username }}</span>
+                          </div>
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent class="w-56 p-2">
+                      <Button 
+                        variant="ghost" 
+                        class="w-full justify-start mb-1"
+                        @click="navigate('/settings')"
+                      >
+                        <Settings class="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        class="w-full justify-start text-destructive hover:text-destructive"
+                        @click="handleSignOut"
+                      >
+                        <LogOut class="mr-2 h-4 w-4" />
+                        <span>Sign Out</span>
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             </div>
           </SheetContent>
@@ -208,4 +311,4 @@ const navigate = (path: string) => {
 
 <style scoped>
 /* Remove the invert and filter-none styles since we're using fill-current now */
-</style> 
+</style>
