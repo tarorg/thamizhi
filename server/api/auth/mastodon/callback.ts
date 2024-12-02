@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
         client_secret,
         redirect_uri: process.env.NODE_ENV === 'development'
           ? 'http://localhost:3000/api/auth/mastodon/callback'
-          : `${process.env.APP_URL}/api/auth/mastodon/callback`,
+          : `https://thamizhi.xyz/api/auth/mastodon/callback`,
         grant_type: 'authorization_code',
         code: code,
         scope: 'read write follow'

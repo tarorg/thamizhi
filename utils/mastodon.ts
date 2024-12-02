@@ -2,7 +2,7 @@ const CLIENT_NAME = 'Thamizhi'
 const WEBSITE = 'https://thamizhi.org'
 const REDIRECT_URI = process.env.NODE_ENV === 'development' 
   ? 'http://localhost:3000/api/auth/mastodon/callback'
-  : 'https://thamizhi.org/api/auth/mastodon/callback'
+  : 'https://thamizhi.xyz/api/auth/mastodon/callback'
 const SCOPES = 'read write follow'
 
 interface AppCredentials {
