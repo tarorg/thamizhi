@@ -77,6 +77,7 @@
 import { ref } from 'vue'
 import { useRouter } from '#imports'
 import { useMastodon } from '~/composables/useMastodon'
+import { mastodonConfig } from '~/config/mastodon'
 
 definePageMeta({
   layout: 'auth'
@@ -126,15 +127,17 @@ async function proceedToMastodonOAuth(handle: string) {
     const state = Math.random().toString(36).substring(2)
     sessionStorage.setItem('oauth_state', state)
     
-    // Build the login URL with state parameter
-    const loginUrl = `/api/auth/mastodon/login?${new URLSearchParams({
-      instance,
-      handle: cleanHandle,
-      state
-    }).toString()}`
+    // Build the OAuth URL directly
+    const params = new URLSearchParams({
+      client_id: mastodonConfig.clientId,
+      redirect_uri: mastodonConfig.redirectUri,
+      response_type: 'code',
+      scope: mastodonConfig.scopes.join(' '),
+      state,
+    })
 
-    // Navigate to the login endpoint
-    window.location.href = loginUrl
+    // Redirect to Mastodon instance's OAuth endpoint
+    window.location.href = `https://${instance}/oauth/authorize?${params.toString()}`
   } catch (e) {
     console.error('Error proceeding to Mastodon OAuth:', e)
     throw e
