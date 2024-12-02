@@ -75,30 +75,24 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from '#imports'
-import { useMastodon } from '~/composables/useMastodon'
-import { mastodonConfig } from '~/config/mastodon'
-
-definePageMeta({
-  layout: 'auth'
-})
+import { Label } from '../components/ui/label'
+import { Input } from '../components/ui/input'
+import { Button } from '../components/ui/button'
+import Alert from '../components/ui/alert/Alert.vue'
+import AlertTitle from '../components/ui/alert/AlertTitle.vue'
+import AlertDescription from '../components/ui/alert/AlertDescription.vue'
+import { AlertCircle } from 'lucide-vue-next'
 
 const mastodonHandle = ref('')
 const loading = ref(false)
-const error = ref<string | null>(null)
-const { setAccessToken } = useMastodon()
+const error = ref(null)
 
 async function verifyMastodonAccount(handle: string) {
   try {
-    const handleMatch = handle.match(/@?([^@]+)@(.+)/)
-    if (!handleMatch) {
-      throw new Error('Invalid Mastodon handle format. Please use format: @username@instance')
-    }
-
-    const [, username, instance] = handleMatch
-    console.log('Verifying Mastodon handle:', username, 'on instance:', instance)
+    const cleanHandle = handle.replace(/^@/, '').split('@')[0] // Get just the username part
+    console.log('Verifying Mastodon handle:', cleanHandle)
     
-    const response = await fetch(`https://${instance}/api/v1/accounts/lookup?acct=${username}`)
+    const response = await fetch(`https://mastodon.social/api/v1/accounts/lookup?acct=${cleanHandle}`)
     
     if (!response.ok) {
       throw new Error('Could not verify Mastodon account. Please check your handle.')
@@ -123,21 +117,17 @@ async function proceedToMastodonOAuth(handle: string) {
     const [, username, instance] = handleMatch
     const cleanHandle = `${username}@${instance}`
 
-    // Generate state parameter for CSRF protection
-    const state = Math.random().toString(36).substring(2)
-    sessionStorage.setItem('oauth_state', state)
+    // Use router for client-side navigation
+    const router = useRouter()
     
-    // Build the OAuth URL directly
-    const params = new URLSearchParams({
-      client_id: mastodonConfig.clientId,
-      redirect_uri: mastodonConfig.redirectUri,
-      response_type: 'code',
-      scope: mastodonConfig.scopes.join(' '),
-      state,
-    })
+    // Build the login URL
+    const loginUrl = `/api/auth/mastodon/login?${new URLSearchParams({
+      instance: instance,
+      handle: cleanHandle
+    }).toString()}`
 
-    // Redirect to Mastodon instance's OAuth endpoint
-    window.location.href = `https://${instance}/oauth/authorize?${params.toString()}`
+    // Navigate to the login endpoint
+    window.location.href = loginUrl
   } catch (e) {
     console.error('Error proceeding to Mastodon OAuth:', e)
     throw e
@@ -151,6 +141,12 @@ async function handleSubmit() {
   try {
     if (!mastodonHandle.value) {
       throw new Error('Please enter your Mastodon handle')
+    }
+
+    // Validate handle format
+    const handleMatch = mastodonHandle.value.match(/@?([^@]+)@(.+)/)
+    if (!handleMatch) {
+      throw new Error('Invalid Mastodon handle format. Please use format: @username@instance')
     }
 
     // Verify with Mastodon

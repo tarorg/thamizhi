@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { 
   Sidebar, 
   SidebarContent, 
@@ -9,25 +9,15 @@ import {
   SidebarTrigger,
   SidebarFooter 
 } from '@/components/ui/sidebar'
-import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn, LogOut, User } from 'lucide-vue-next'
+import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import IconAsterisk from '@/components/icons/IconAsterisk.vue'
-import { useMastodon } from '~/composables/useMastodon'
-import { computed } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
 const isDark = ref(false)
 const sheetOpen = ref(false)
-
-// Initialize Mastodon composable with reactive state
-const { isAuthenticated, mastodonUser, logout } = useMastodon()
-
-// Make auth state reactive
-const isLoggedIn = computed(() => isAuthenticated.value)
-const currentUser = computed(() => mastodonUser.value)
 
 onMounted(() => {
   document.documentElement.classList.remove('dark')
@@ -42,20 +32,6 @@ const navigate = (path: string) => {
   router.push(path)
   sheetOpen.value = false // Close sheet after navigation
 }
-
-const handleLogout = async () => {
-  await logout()
-  sheetOpen.value = false
-  router.push('/signin')
-}
-
-// Watch for auth state changes
-watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
-  console.log('Auth state changed:', { isAuthenticated: newAuth, user: newUser })
-  if (!newAuth) {
-    router.push('/signin')
-  }
-})
 </script>
 
 <template>
@@ -66,9 +42,8 @@ watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
         <IconAsterisk class="h-5 w-5 text-foreground" />
       </SidebarTrigger>
       
-      <SidebarContent class="flex flex-col h-full">
-        <!-- Main Navigation -->
-        <SidebarMenu class="flex-none">
+      <SidebarContent>
+        <SidebarMenu>
           <SidebarMenuButton 
             @click="navigate('/')"
             :is-active="route.path === '/'"
@@ -99,51 +74,39 @@ watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
             <span>நூலகம்</span>
           </SidebarMenuButton>
         </SidebarMenu>
-
-        <!-- Spacer -->
-        <div class="flex-1"></div>
-
-        <!-- Bottom Section -->
-        <div class="mt-auto">
-          <!-- User Profile Section -->
-          <div v-if="isLoggedIn" class="px-2 py-4 border-t cursor-pointer" @click="navigate('/settings')">
-            <div class="flex items-center space-x-4">
-              <Avatar class="h-8 w-8">
-                <AvatarImage v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.display_name" />
-                <AvatarFallback>{{ currentUser?.display_name?.charAt(0) || '?' }}</AvatarFallback>
-              </Avatar>
-              <div class="space-y-1">
-                <p class="text-sm font-medium leading-none">{{ currentUser?.display_name }}</p>
-                <p class="text-xs text-muted-foreground">@{{ currentUser?.acct }}</p>
-              </div>
-            </div>
-          </div>
-          <div v-else class="px-2 py-4 border-t">
-            <SidebarMenuButton 
-              @click="navigate('/signin')"
-              :is-active="route.path === '/signin'"
-              tooltip="Sign In"
-              class="text-foreground hover:bg-transparent"
-            >
-              <LogIn class="text-foreground" />
-              <span>Sign In</span>
-            </SidebarMenuButton>
-          </div>
-
-          <!-- Settings and Theme -->
-          <div class="border-t">
-            <SidebarMenuButton 
-              @click="toggleTheme"
-              tooltip="Toggle Theme"
-              class="text-foreground hover:bg-transparent"
-            >
-              <Sun v-if="!isDark" class="text-foreground" />
-              <Moon v-else class="text-foreground" />
-              <span>{{ isDark ? 'Dark' : 'Light' }} Mode</span>
-            </SidebarMenuButton>
-          </div>
-        </div>
       </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenuButton 
+          @click="toggleTheme"
+          tooltip="Toggle Theme"
+          class="text-foreground hover:bg-transparent"
+        >
+          <Sun v-if="!isDark" class="text-foreground" />
+          <Moon v-else class="text-foreground" />
+          <span>{{ isDark ? 'Dark' : 'Light' }} Mode</span>
+        </SidebarMenuButton>
+
+        <SidebarMenuButton 
+          @click="navigate('/settings')"
+          :is-active="route.path === '/settings'"
+          tooltip="Settings"
+          class="text-foreground hover:bg-transparent"
+        >
+          <Settings class="text-foreground" />
+          <span>Settings</span>
+        </SidebarMenuButton>
+
+        <SidebarMenuButton 
+          @click="navigate('/signin')"
+          :is-active="route.path === '/signin'"
+          tooltip="Sign In"
+          class="text-foreground hover:bg-transparent"
+        >
+          <LogIn class="text-foreground" />
+          <span>Sign In</span>
+        </SidebarMenuButton>
+      </SidebarFooter>
     </Sidebar>
 
     <!-- Mobile Menu -->
@@ -159,17 +122,7 @@ watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
           <SheetContent side="left" class="w-[250px] p-0">
             <div class="flex flex-col h-full bg-background">
               <div class="p-4 border-b">
-                <div v-if="isLoggedIn && currentUser" class="flex items-center space-x-4">
-                  <Avatar>
-                    <AvatarImage :src="currentUser.avatar" :alt="currentUser.display_name" />
-                    <AvatarFallback>{{ currentUser.display_name?.charAt(0) }}</AvatarFallback>
-                  </Avatar>
-                  <div class="space-y-1">
-                    <p class="text-sm font-medium leading-none">{{ currentUser.display_name }}</p>
-                    <p class="text-xs text-muted-foreground">@{{ currentUser.acct }}</p>
-                  </div>
-                </div>
-                <div v-else class="flex items-center gap-2">
+                <div class="flex items-center gap-2">
                   <IconAsterisk class="h-5 w-5 text-foreground" />
                   <span class="text-lg font-semibold">தமிழி</span>
                 </div>
@@ -220,27 +173,15 @@ watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
                   Settings
                 </Button>
 
-                <!-- Authentication Buttons for Mobile -->
-                <template v-if="isLoggedIn">
-                  <Button 
-                    variant="ghost" 
-                    class="w-full justify-start"
-                    @click="handleLogout"
-                  >
-                    <LogOut class="mr-2 h-4 w-4" />
-                    Sign Out
-                  </Button>
-                </template>
-                <template v-else>
-                  <Button 
-                    variant="ghost" 
-                    class="w-full justify-start"
-                    @click="navigate('/signin')"
-                  >
-                    <LogIn class="mr-2 h-4 w-4" />
-                    Sign In
-                  </Button>
-                </template>
+                <Button 
+                  variant="ghost" 
+                  class="w-full justify-start"
+                  :class="{ 'bg-accent': route.path === '/signin' }"
+                  @click="navigate('/signin')"
+                >
+                  <LogIn class="mr-2 h-5 w-5" />
+                  Sign In
+                </Button>
                 
                 <Button 
                   variant="ghost" 
@@ -259,8 +200,12 @@ watch([isLoggedIn, currentUser], ([newAuth, newUser]) => {
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 md:ml-[250px] pt-[60px] md:pt-0">
+    <main class="flex-1 overflow-hidden bg-background md:mt-0 mt-[60px]">
       <slot />
-    </div>
+    </main>
   </SidebarProvider>
-</template>
+</template> 
+
+<style scoped>
+/* Remove the invert and filter-none styles since we're using fill-current now */
+</style> 
