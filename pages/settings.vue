@@ -178,9 +178,11 @@ const saveGeminiApiKey = async () => {
       let userExists = false
       try {
         const checkUserResponseData = JSON.parse(checkUserResponseText)
-        userExists = checkUserResponseData.results[0].result.rows[0].user_count > 0
+        // Correctly parse the nested response structure
+        userExists = checkUserResponseData.results[0].response.result.rows[0][0].value > 0
+        console.log('User Exists:', userExists)
       } catch (parseError) {
-        console.error('Error parsing check user response:', parseError)
+        console.error('Error parsing check user response:', parseError, checkUserResponseText)
         return
       }
 
