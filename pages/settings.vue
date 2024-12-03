@@ -150,7 +150,8 @@ const saveGeminiApiKey = async () => {
         return
       }
 
-      const tursoResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+      // First, check if user exists in the database
+      const checkUserResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
@@ -161,9 +162,8 @@ const saveGeminiApiKey = async () => {
             {
               type: "execute",
               stmt: {
-                sql: "UPDATE users SET gemini_api = ? WHERE mastodon_id = ?",
+                sql: "SELECT COUNT(*) as user_count FROM users WHERE mastodon_id = ?",
                 args: [
-                  { type: "text", value: geminiApiKey.value },
                   { type: "text", value: mastodonUser.value.id }
                 ]
               }
@@ -172,14 +172,76 @@ const saveGeminiApiKey = async () => {
         })
       })
 
+      const checkUserResponseText = await checkUserResponse.text()
+      console.log('Check User Response:', checkUserResponseText)
+
+      let userExists = false
+      try {
+        const checkUserResponseData = JSON.parse(checkUserResponseText)
+        userExists = checkUserResponseData.results[0].result.rows[0].user_count > 0
+      } catch (parseError) {
+        console.error('Error parsing check user response:', parseError)
+        return
+      }
+
+      // Prepare the request body based on whether user exists
+      const requestBody = {
+        requests: [
+          {
+            type: "execute",
+            stmt: userExists 
+              ? {
+                  sql: "UPDATE users SET gemini_api = ?, updated_at = CURRENT_TIMESTAMP WHERE mastodon_id = ?",
+                  args: [
+                    { type: "text", value: geminiApiKey.value },
+                    { type: "text", value: mastodonUser.value.id }
+                  ]
+                }
+              : {
+                  sql: `
+                    INSERT INTO users (
+                      mastodon_id, 
+                      mastodon_instance,
+                      display_name, 
+                      avatar_url, 
+                      mastodon_handle,
+                      gemini_api
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                  `,
+                  args: [
+                    { type: "text", value: mastodonUser.value.id },
+                    { type: "text", value: mastodonUser.value.instance || '' },
+                    { type: "text", value: mastodonUser.value.display_name },
+                    { type: "text", value: mastodonUser.value.avatar },
+                    { type: "text", value: `@${mastodonUser.value.username}` },
+                    { type: "text", value: geminiApiKey.value }
+                  ]
+                }
+          }
+        ]
+      }
+
+      // Send the appropriate request (update or insert)
+      const tursoResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      })
+
       const responseText = await tursoResponse.text()
       console.log('Save Gemini API Response:', responseText)
 
       if (tursoResponse.ok) {
+        // Store in local storage as a backup
         localStorage.setItem('gemini_api_key', geminiApiKey.value)
         
         apiKeySaved.value = true
+        fetchedGeminiApiKey.value = true
         
+        // Clear the success message after 3 seconds
         setTimeout(() => {
           apiKeySaved.value = false
         }, 3000)
