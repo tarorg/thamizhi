@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import IconAsterisk from '@/components/icons/IconAsterisk.vue'
 import { useMastodon } from '@/composables/useMastodon'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +28,8 @@ const isDark = ref(false)
 const sheetOpen = ref(false)
 const showProfileMenu = ref(false)
 const { mastodonUser, accessToken, validateToken, signOut } = useMastodon()
+const currentLanguage = ref('TA')
+const state = ref('expanded')
 
 const isAuthenticated = computed(() => {
   const hasAuth = !!accessToken.value && !!mastodonUser.value
@@ -87,41 +90,6 @@ const handleSignOut = async () => {
       </SidebarTrigger>
       
       <SidebarContent>
-        <!-- Profile Section -->
-        <div v-if="isAuthenticated && mastodonUser" class="p-4 border-b">
-          <Popover v-model:open="showProfileMenu">
-            <PopoverTrigger as-child>
-              <Button 
-                variant="ghost" 
-                class="w-full p-2 h-auto hover:bg-accent"
-              >
-                <div class="flex items-center space-x-3 w-full">
-                  <img 
-                    :src="mastodonUser.avatar" 
-                    :alt="mastodonUser.display_name"
-                    class="w-8 h-8 rounded-full"
-                    @error="$event.target.src = 'https://mastodon.social/avatars/original/missing.png'"
-                  />
-                  <div class="flex flex-col overflow-hidden text-left">
-                    <span class="font-medium text-sm truncate">{{ mastodonUser.display_name }}</span>
-                    <span class="text-xs text-muted-foreground truncate">@{{ mastodonUser.username }}</span>
-                  </div>
-                </div>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent class="w-56 p-2">
-              <Button 
-                variant="ghost" 
-                class="w-full justify-start"
-                @click="handleSignOut"
-              >
-                <LogOut class="mr-2 h-5 w-5" />
-                Sign Out
-              </Button>
-            </PopoverContent>
-          </Popover>
-        </div>
-        
         <SidebarMenu>
           <SidebarMenuButton 
             @click="navigate('/')"
@@ -152,20 +120,69 @@ const handleSignOut = async () => {
             <Library class="text-foreground" />
             <span>நூலகம்</span>
           </SidebarMenuButton>
+
+          <!-- Bottom Icons Container -->
+          <div class="mt-auto flex flex-col gap-2 p-2">
+            
+          </div>
         </SidebarMenu>
+
+        <div class="mt-auto space-y-2">
+          <!-- Profile Section -->
+          <div v-if="isAuthenticated && mastodonUser">
+            <Popover v-model:open="showProfileMenu">
+              <PopoverTrigger as-child>
+                <Button 
+                  variant="ghost" 
+                  class="w-full p-2 h-auto hover:bg-accent"
+                >
+                  <div class="flex items-center space-x-3 w-full">
+                    <img 
+                      :src="mastodonUser.avatar" 
+                      :alt="mastodonUser.display_name"
+                      class="w-8 h-8 rounded-full"
+                    />
+                    <div class="text-left flex-1">
+                      <div class="font-medium">{{ mastodonUser.display_name }}</div>
+                      <div class="text-sm text-muted-foreground">@{{ mastodonUser.username }}</div>
+                    </div>
+                  </div>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-56 p-2">
+                <Button 
+                  variant="ghost" 
+                  class="w-full justify-start gap-2 mb-1"
+                  @click="navigate('/settings')"
+                >
+                  <Settings class="h-4 w-4" />
+                  Settings
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  class="w-full justify-start gap-2"
+                  @click="handleSignOut"
+                >
+                  <LogOut class="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div v-else>
+            <Button 
+              variant="ghost" 
+              class="w-full justify-start gap-2 p-2"
+              @click="navigate('/login')"
+            >
+              <LogIn class="h-5 w-5" />
+              <span>Sign In</span>
+            </Button>
+          </div>
+        </div>
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarMenuButton 
-          @click="toggleTheme"
-          tooltip="Toggle Theme"
-          class="text-foreground hover:bg-transparent"
-        >
-          <Sun v-if="!isDark" class="text-foreground" />
-          <Moon v-else class="text-foreground" />
-          <span>{{ isDark ? 'Dark' : 'Light' }} Mode</span>
-        </SidebarMenuButton>
-
         <SidebarMenuButton 
           v-if="!isAuthenticated"
           @click="navigate('/signin')"
@@ -202,8 +219,8 @@ const handleSignOut = async () => {
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/alai' }"
-                    @click="navigate('/alai')"
+                    :class="{ 'bg-accent': route.path === '/' }"
+                    @click="navigate('/')"
                   >
                     <Globe class="mr-2 h-5 w-5" />
                     அலை
@@ -226,74 +243,46 @@ const handleSignOut = async () => {
                     @click="navigate('/noolakam')"
                   >
                     <Library class="mr-2 h-5 w-5" />
-                    நூலகம் 
+                    நூலகம்
                   </Button>
-                </div>
-              </div>
-              <div class="border-t p-2 space-y-2">
-                <!-- Theme Toggle -->
-                <Button 
-                  variant="ghost" 
-                  class="w-full justify-start"
-                  @click="toggleTheme"
-                >
-                  <Sun v-if="!isDark" class="mr-2 h-5 w-5" />
-                  <Moon v-else class="mr-2 h-5 w-5" />
-                  {{ isDark ? 'Dark' : 'Light' }} Mode
-                </Button>
 
-                <!-- Sign In / Profile -->
-                <Button 
-                  v-if="!isAuthenticated"
-                  variant="ghost" 
-                  class="w-full justify-start"
-                  :class="{ 'bg-accent': route.path === '/signin' }"
-                  @click="navigate('/signin')"
-                >
-                  <LogIn class="mr-2 h-5 w-5" />
-                  Sign In
-                </Button>
+                  <Button 
+                    variant="ghost" 
+                    class="w-full justify-start"
+                    @click="toggleTheme"
+                  >
+                    <Sun v-if="isDark" class="mr-2 h-5 w-5" />
+                    <Moon v-else class="mr-2 h-5 w-5" />
+                    {{ isDark ? 'Light Mode' : 'Dark Mode' }}
+                  </Button>
 
-                <div v-else>
-                  <Popover v-model:open="showProfileMenu">
-                    <PopoverTrigger as-child>
-                      <Button 
-                        variant="ghost" 
-                        class="w-full p-2 h-auto hover:bg-accent"
-                      >
-                        <div class="flex items-center space-x-3 w-full">
-                          <img 
-                            :src="mastodonUser?.avatar" 
-                            :alt="mastodonUser?.display_name"
-                            class="w-8 h-8 rounded-full"
-                            @error="$event.target.src = 'https://mastodon.social/avatars/original/missing.png'"
-                          />
-                          <div class="flex flex-col overflow-hidden text-left">
-                            <span class="font-medium text-sm truncate">{{ mastodonUser?.display_name }}</span>
-                            <span class="text-xs text-muted-foreground truncate">@{{ mastodonUser?.username }}</span>
-                          </div>
-                        </div>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-56 p-2">
-                      <Button 
-                        variant="ghost" 
-                        class="w-full justify-start mb-1"
-                        @click="navigate('/settings')"
-                      >
-                        <Settings class="mr-2 h-4 w-4" />
-                        <span>Settings</span>
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        class="w-full justify-start text-destructive hover:text-destructive"
-                        @click="handleSignOut"
-                      >
-                        <LogOut class="mr-2 h-4 w-4" />
-                        <span>Sign Out</span>
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
+                  <div v-if="isAuthenticated && mastodonUser">
+                    <Button 
+                      variant="ghost" 
+                      class="w-full justify-start"
+                      @click="navigate('/settings')"
+                    >
+                      <Settings class="mr-2 h-5 w-5" />
+                      Settings
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      class="w-full justify-start"
+                      @click="handleSignOut"
+                    >
+                      <LogOut class="mr-2 h-5 w-5" />
+                      Sign Out
+                    </Button>
+                  </div>
+                  <Button 
+                    v-else
+                    variant="ghost" 
+                    class="w-full justify-start"
+                    @click="navigate('/login')"
+                  >
+                    <LogIn class="mr-2 h-5 w-5" />
+                    Sign In
+                  </Button>
                 </div>
               </div>
             </div>

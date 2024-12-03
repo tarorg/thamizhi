@@ -40,28 +40,6 @@ const handleLanguageChange = (value: string) => {
     <!-- Spacer to push content to bottom -->
     <div class="flex-1"></div>
 
-    <!-- Language Selector -->
-    <div class="px-2">
-      <Select v-model="currentLanguage" @update:modelValue="handleLanguageChange">
-        <SelectTrigger 
-          class="w-full h-5 bg-transparent border-0 text-xs" 
-          :class="{ 'justify-center [&>svg]:hidden': state === 'collapsed' }"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem 
-            v-for="lang in languages" 
-            :key="lang.value" 
-            :value="lang.value"
-            class="text-xs"
-          >
-            {{ lang.label }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-
     <!-- Theme Toggle -->
     <slot name="bottom" />
   </div>
