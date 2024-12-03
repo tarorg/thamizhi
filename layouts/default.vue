@@ -169,16 +169,6 @@ const handleSignOut = async () => {
               </PopoverContent>
             </Popover>
           </div>
-          <div v-else>
-            <Button 
-              variant="ghost" 
-              class="w-full justify-start gap-2 p-2"
-              @click="navigate('/login')"
-            >
-              <LogIn class="h-5 w-5" />
-              <span>Sign In</span>
-            </Button>
-          </div>
         </div>
       </SidebarContent>
 
