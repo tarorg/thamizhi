@@ -23,6 +23,33 @@
         </div>
       </div>
 
+      <!-- Gemini API Settings -->
+      <div class="bg-card rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Gemini API</h2>
+        <div class="flex items-center space-x-2">
+          <input 
+            v-model="geminiApiKey" 
+            type="password" 
+            placeholder="Enter Gemini API Key" 
+            class="flex-grow input input-bordered w-full pr-10"
+          />
+          <Button 
+            @click="saveGeminiApiKey" 
+            variant="outline" 
+            size="icon" 
+            class="w-10 h-10"
+          >
+            <SaveIcon class="w-5 h-5" />
+          </Button>
+        </div>
+        <p v-if="apiKeySaved" class="text-green-500 text-sm mt-2">
+          API Key saved successfully
+        </p>
+        <p v-else-if="fetchedGeminiApiKey" class="text-blue-500 text-sm mt-2">
+          Existing API Key loaded
+        </p>
+      </div>
+
       <!-- Appearance Settings -->
       <div class="bg-card rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Appearance</h2>
@@ -41,11 +68,136 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import { SaveIcon } from 'lucide-vue-next'
 import { useMastodon } from '@/composables/useMastodon'
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useStorage } from '@vueuse/core'
 
 const { mastodonUser } = useMastodon()
 const isDark = ref(false)
+
+// Gemini API Key Management
+const geminiApiKey = useStorage('gemini_api_key', '')
+const apiKeySaved = ref(false)
+const fetchedGeminiApiKey = ref(false)
+
+// Fetch Gemini API key when Mastodon user is available
+const fetchGeminiApiKey = async () => {
+  if (!mastodonUser.value) {
+    console.error('No Mastodon user logged in')
+    return
+  }
+
+  try {
+    const tursoResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        requests: [
+          {
+            type: "execute",
+            stmt: {
+              sql: "SELECT gemini_api FROM users WHERE mastodon_id = ?",
+              args: [
+                { type: "text", value: mastodonUser.value.id }
+              ]
+            }
+          }
+        ]
+      })
+    })
+
+    const responseText = await tursoResponse.text()
+    console.log('Fetch Gemini API Response:', responseText)
+
+    if (tursoResponse.ok) {
+      try {
+        const responseData = JSON.parse(responseText)
+        
+        // Check if results exist and have a value
+        if (responseData.results && 
+            responseData.results[0].result.rows.length > 0 && 
+            responseData.results[0].result.rows[0].gemini_api) {
+          
+          geminiApiKey.value = responseData.results[0].result.rows[0].gemini_api
+          fetchedGeminiApiKey.value = true
+          
+          console.log('Fetched Gemini API Key:', geminiApiKey.value)
+        } else {
+          console.log('No Gemini API key found for this user')
+          fetchedGeminiApiKey.value = false
+        }
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError)
+      }
+    } else {
+      console.error('Failed to fetch Gemini API key')
+    }
+  } catch (error) {
+    console.error('Error fetching Gemini API key:', error)
+  }
+}
+
+// Save Gemini API key
+const saveGeminiApiKey = async () => {
+  if (geminiApiKey.value.trim()) {
+    try {
+      if (!mastodonUser.value) {
+        console.error('No Mastodon user logged in')
+        return
+      }
+
+      const tursoResponse = await fetch('https://thamizhi-thamizhiorg.turso.io/v2/pipeline', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              type: "execute",
+              stmt: {
+                sql: "UPDATE users SET gemini_api = ? WHERE mastodon_id = ?",
+                args: [
+                  { type: "text", value: geminiApiKey.value },
+                  { type: "text", value: mastodonUser.value.id }
+                ]
+              }
+            }
+          ]
+        })
+      })
+
+      const responseText = await tursoResponse.text()
+      console.log('Save Gemini API Response:', responseText)
+
+      if (tursoResponse.ok) {
+        localStorage.setItem('gemini_api_key', geminiApiKey.value)
+        
+        apiKeySaved.value = true
+        
+        setTimeout(() => {
+          apiKeySaved.value = false
+        }, 3000)
+      } else {
+        console.error('Failed to save Gemini API key')
+      }
+    } catch (error) {
+      console.error('Error saving Gemini API key:', error)
+    }
+  }
+}
+
+// Fetch Gemini API key when Mastodon user changes
+watch(() => mastodonUser.value, (newUser) => {
+  if (newUser) {
+    fetchGeminiApiKey()
+  }
+}, { immediate: true })
 
 const toggleTheme = () => {
   isDark.value = !isDark.value

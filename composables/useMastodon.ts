@@ -1,5 +1,6 @@
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useStorage } from '@vueuse/core'
+import { getMastodonUser, setMastodonUser, removeMastodonUser } from '@/utils/indexedDB'
 
 export interface MastodonUser {
   id: string
@@ -18,10 +19,29 @@ export interface MastodonUser {
 }
 
 export const useMastodon = () => {
-  // Use localStorage for persistent storage
   const accessToken = useStorage<string | null>('mastodon_token', null)
-  const mastodonUser = useStorage<MastodonUser | null>('mastodon_user', null)
+  const mastodonUser = ref<MastodonUser | null>(null)
   const mastodonInstance = useStorage<string>('mastodon_instance', '')
+
+  onMounted(async () => {
+    try {
+      const userData = await getMastodonUser()
+      if (userData) {
+        mastodonUser.value = userData
+      }
+    } catch (error) {
+      console.error('Error loading Mastodon user from IndexedDB:', error)
+    }
+  })
+
+  const setUser = async (user: MastodonUser | null) => {
+    mastodonUser.value = user
+    if (user) {
+      await setMastodonUser(user)
+    } else {
+      await removeMastodonUser()
+    }
+  }
 
   console.log('[useMastodon] Initializing with state:', {
     hasToken: !!accessToken.value,
@@ -76,7 +96,7 @@ export const useMastodon = () => {
       const userData = await response.json()
       console.log('[validateToken] Received user data:', userData)
       
-      mastodonUser.value = {
+      await setUser({
         id: userData.id,
         username: userData.username,
         display_name: userData.display_name || userData.username,
@@ -90,7 +110,7 @@ export const useMastodon = () => {
         statuses_count: userData.statuses_count,
         last_status_at: userData.last_status_at,
         fields: userData.fields || []
-      }
+      })
       
       console.log('[validateToken] Updated mastodon user:', mastodonUser.value)
       return true
@@ -119,7 +139,7 @@ export const useMastodon = () => {
   function clearAccessToken() {
     console.log('[clearAccessToken] Clearing token and user data')
     accessToken.value = null
-    mastodonUser.value = null
+    setUser(null)
     mastodonInstance.value = ''
   }
 
@@ -141,6 +161,7 @@ export const useMastodon = () => {
     setAccessToken,
     validateToken,
     signOut,
-    clearAccessToken
+    clearAccessToken,
+    setUser
   }
 }
