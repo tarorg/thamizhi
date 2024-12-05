@@ -17,6 +17,9 @@
               <div>
                 <div class="font-medium">{{ mastodonUser.display_name }}</div>
                 <div class="text-sm text-muted-foreground">@{{ mastodonUser.username }}</div>
+                <div class="text-sm text-muted-foreground mt-1">
+                  Role: {{ userRole || 'User' }}
+                </div>
               </div>
             </div>
           </div>
@@ -75,14 +78,15 @@ import { useStorage } from '@vueuse/core'
 
 const { mastodonUser } = useMastodon()
 const isDark = ref(false)
+const userRole = useStorage('userRole', '')
 
 // Gemini API Key Management
 const geminiApiKey = useStorage('gemini_api_key', '')
 const apiKeySaved = ref(false)
 const fetchedGeminiApiKey = ref(false)
 
-// Fetch Gemini API key when Mastodon user is available
-const fetchGeminiApiKey = async () => {
+// Fetch user data (role and Gemini API) when Mastodon user is available
+const fetchUserData = async () => {
   if (!mastodonUser.value) {
     console.error('No Mastodon user logged in')
     return
@@ -100,7 +104,7 @@ const fetchGeminiApiKey = async () => {
           {
             type: "execute",
             stmt: {
-              sql: "SELECT gemini_api FROM users WHERE mastodon_id = ?",
+              sql: "SELECT role, gemini_api FROM users WHERE mastodon_id = ?",
               args: [
                 { type: "text", value: mastodonUser.value.id }
               ]
@@ -111,33 +115,51 @@ const fetchGeminiApiKey = async () => {
     })
 
     const responseText = await tursoResponse.text()
-    console.log('Fetch Gemini API Response:', responseText)
+    console.log('Fetch User Data Response:', responseText)
 
     if (tursoResponse.ok) {
       try {
         const responseData = JSON.parse(responseText)
+        console.log('Parsed User Data Response:', responseData)
         
-        // Check if results exist and have a value
         if (responseData.results && 
-            responseData.results[0].result.rows.length > 0 && 
-            responseData.results[0].result.rows[0].gemini_api) {
+            responseData.results[0].response?.result?.rows?.length > 0) {
+          const row = responseData.results[0].response.result.rows[0]
           
-          geminiApiKey.value = responseData.results[0].result.rows[0].gemini_api
-          fetchedGeminiApiKey.value = true
-          
-          console.log('Fetched Gemini API Key:', geminiApiKey.value)
+          // Extract role and store it
+          const roleValue = row[0]?.value || row.role?.value || 'user'
+          userRole.value = roleValue 
+          localStorage.setItem('userRole', roleValue) // Store in localStorage
+          console.log('User Role Set:', roleValue)
+          console.log('User Role Set and Stored:', roleValue) // Log role setting
+          console.log('User Role Set and Stored:', roleValue) // Log role setting
+
+          // Extract Gemini API key
+          const geminiApiValue = row[1]?.value || row.gemini_api?.value || null
+          if (geminiApiValue) {
+            geminiApiKey.value = geminiApiValue
+            fetchedGeminiApiKey.value = true
+            console.log('Gemini API Key Set:', geminiApiValue)
+          }
         } else {
-          console.log('No Gemini API key found for this user')
-          fetchedGeminiApiKey.value = false
+          console.log('No user data found')
+          userRole.value = 'user' // Set default role if no data found
+          localStorage.setItem('userRole', 'user') // Store default role in localStorage
         }
       } catch (parseError) {
-        console.error('Error parsing response:', parseError)
+        console.error('Error parsing user data response:', parseError)
+        userRole.value = 'user' // Set default role on error
+        localStorage.setItem('userRole', 'user') // Store default role in localStorage
       }
     } else {
-      console.error('Failed to fetch Gemini API key')
+      console.error('Failed to fetch user data')
+      userRole.value = 'user' // Set default role on error
+      localStorage.setItem('userRole', 'user') // Store default role in localStorage
     }
   } catch (error) {
-    console.error('Error fetching Gemini API key:', error)
+    console.error('Error fetching user data:', error)
+    userRole.value = 'user' // Set default role on error
+    localStorage.setItem('userRole', 'user') // Store default role in localStorage
   }
 }
 
@@ -256,12 +278,24 @@ const saveGeminiApiKey = async () => {
   }
 }
 
-// Fetch Gemini API key when Mastodon user changes
+// Initialize data fetching
+onMounted(() => {
+  if (mastodonUser.value) {
+    fetchUserData()
+  }
+})
+
+// Watch for mastodon user changes
 watch(() => mastodonUser.value, (newUser) => {
   if (newUser) {
-    fetchGeminiApiKey()
+    fetchUserData()
+  } else {
+    userRole.value = ''
+    localStorage.setItem('userRole', '') // Clear user role from localStorage
+    geminiApiKey.value = ''
+    fetchedGeminiApiKey.value = false
   }
-}, { immediate: true })
+})
 
 const toggleTheme = () => {
   isDark.value = !isDark.value

@@ -1,14 +1,14 @@
 <template>
-  <div class="container mx-auto py-8 px-4 max-w-4xl">
+  <div class="container mx-auto p-4 md:p-8 max-w-full md:max-w-4xl m-4 md:m-10">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div class="space-y-1">
-        <h1 class="text-2xl font-bold">இழை / Thread</h1>
-        <p class="text-sm text-muted-foreground">Create new thread for your collection</p>
+    <div class="flex flex-col md:flex-row items-center justify-between mb-4 md:mb-8 px-2 md:px-4">
+      <div class="space-y-1 ml-2 md:ml-4">
+        <h1 class="text-xl md:text-2xl font-bold">இழை / Thread</h1>
+        <p class="text-xs md:text-sm text-muted-foreground">Create new thread for your collection</p>
       </div>
       <button 
         @click="handleSubmit"
-        class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-50"
+        class="bg-primary text-primary-foreground py-1 px-2 md:py-2 md:px-4 rounded-md mr-2 md:mr-4"
         :disabled="isLoading"
       >
         {{ isLoading ? 'Saving...' : 'சேமி / Save' }}
@@ -16,25 +16,25 @@
     </div>
 
     <!-- Notion-like Table Form -->
-    <div class="border rounded-lg overflow-hidden bg-background">
+    <div class="border rounded-lg overflow-hidden bg-background p-2 md:p-4">
       <!-- Table Header -->
-      <div class="border-b px-6 py-3 bg-muted/30">
+      <div class="border-b p-2 md:p-4 bg-muted/30">
         <h2 class="font-medium">Thread Details</h2>
       </div>
 
       <!-- Form Fields -->
       <div class="divide-y">
         <!-- Thumbnail Field -->
-        <div class="flex items-center p-4 hover:bg-muted/5 transition-colors">
-          <div class="w-1/3 flex items-center gap-2">
-            <span class="text-sm font-medium">படம்</span>
+        <div class="flex flex-col md:flex-row items-center p-2 md:p-4 hover:bg-muted/5 transition-colors">
+          <div class="w-full md:w-1/3 flex items-center gap-2">
+            <span class="text-xs md:text-sm font-medium">படம்</span>
             <span class="text-xs text-muted-foreground">/</span>
-            <span class="text-sm text-muted-foreground">Thumbnail</span>
+            <span class="text-xs md:text-sm text-muted-foreground">Thumbnail</span>
           </div>
           <div class="flex-1">
             <!-- Show this when there's no image -->
             <Tabs v-if="!form.thumbnailUrl" v-model="activeTab" class="w-full">
-              <TabsList class="mb-4">
+              <TabsList class="mb-2 md:mb-4">
                 <TabsTrigger value="upload" class="flex items-center gap-2">
                   <UploadIcon class="w-4 h-4" />
                   Upload
@@ -46,64 +46,32 @@
               </TabsList>
 
               <TabsContent value="upload">
-                <div class="relative h-[100px] w-[100px] border rounded-lg overflow-hidden">
+                <div class="relative h-[80px] md:h-[100px] w-[80px] md:w-[100px] border rounded-lg overflow-hidden">
                   <input
                     type="file"
-                    accept="image/*"
-                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    class="absolute inset-0 opacity-0 cursor-pointer"
                     @change="handleThumbnailUpload"
                   />
-                  <div class="absolute inset-0 flex items-center justify-center">
-                    <div v-if="form.thumbnailUrl" class="w-full h-full">
-                      <img 
-                        :src="form.thumbnailUrl" 
-                        class="w-full h-full object-cover"
-                        alt="Thumbnail preview" 
-                      />
-                      <div 
-                        v-if="isUploading" 
-                        class="absolute inset-0 bg-black/50 flex items-center justify-center"
-                      >
-                        <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      </div>
-                    </div>
-                    <div v-else class="text-center">
-                      <PlusIcon class="w-6 h-6 text-muted-foreground" />
-                      <span class="text-xs text-muted-foreground mt-1">Upload Image</span>
-                    </div>
+                  <div class="flex items-center justify-center h-full text-xs md:text-sm text-muted-foreground">
+                    Upload Image
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="url">
-                <div class="space-y-4">
-                  <div class="flex gap-2">
-                    <Input
-                      v-model="imageUrl"
-                      type="url"
-                      placeholder="Enter image URL..."
-                      class="flex-1"
-                    />
-                    <button 
-                      @click="handleImageUrl"
-                      class="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                      :disabled="!imageUrl"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  
-                  <!-- URL Image Preview -->
-                  <div 
-                    v-if="form.thumbnailUrl && activeTab === 'url'" 
-                    class="relative h-[100px] w-[100px] border rounded-lg overflow-hidden"
+                <div class="flex items-center gap-2">
+                  <Input
+                    v-model="imageUrl"
+                    type="url"
+                    placeholder="Enter image URL..."
+                    class="flex-1 border-gray-300 rounded-md shadow-sm focus:ring focus:ring-opacity-50"
+                  />
+                  <button 
+                    @click="handleImageUrl"
+                    class="bg-primary text-primary-foreground py-1 px-2 md:py-2 md:px-4 rounded-md"
                   >
-                    <img 
-                      :src="form.thumbnailUrl" 
-                      class="w-full h-full object-cover"
-                      alt="URL thumbnail preview" 
-                    />
-                  </div>
+                    Add
+                  </button>
                 </div>
               </TabsContent>
             </Tabs>
@@ -111,7 +79,7 @@
             <!-- Show this when there's an image -->
             <div 
               v-else 
-              class="relative h-[100px] w-[100px] border rounded-lg overflow-hidden group"
+              class="relative h-[80px] md:h-[100px] w-[80px] md:w-[100px] border rounded-lg overflow-hidden group"
             >
               <img 
                 :src="form.thumbnailUrl" 
@@ -141,11 +109,11 @@
         </div>
 
         <!-- Section Field -->
-        <div class="flex items-center p-4 hover:bg-muted/5 transition-colors">
-          <div class="w-1/3 flex items-center gap-2">
-            <span class="text-sm font-medium">வகை</span>
+        <div class="flex flex-col md:flex-row items-center p-2 md:p-4 hover:bg-muted/5 transition-colors">
+          <div class="w-full md:w-1/3 flex items-center gap-2">
+            <span class="text-xs md:text-sm font-medium">வகை</span>
             <span class="text-xs text-muted-foreground">/</span>
-            <span class="text-sm text-muted-foreground">Section</span>
+            <span class="text-xs md:text-sm text-muted-foreground">Section</span>
           </div>
           <div class="flex-1">
             <Select v-model="form.section">
@@ -169,11 +137,11 @@
         </div>
 
         <!-- Collection Field -->
-        <div class="flex items-center p-4 hover:bg-muted/5 transition-colors">
-          <div class="w-1/3 flex items-center gap-2">
-            <span class="text-sm font-medium">கற்றை</span>
+        <div class="flex flex-col md:flex-row items-center p-2 md:p-4 hover:bg-muted/5 transition-colors">
+          <div class="w-full md:w-1/3 flex items-center gap-2">
+            <span class="text-xs md:text-sm font-medium">கற்றை</span>
             <span class="text-xs text-muted-foreground">/</span>
-            <span class="text-sm text-muted-foreground">Collection</span>
+            <span class="text-xs md:text-sm text-muted-foreground">Collection</span>
           </div>
           <div class="flex-1">
             <Select v-model="form.collection">
@@ -197,11 +165,11 @@
         </div>
 
         <!-- Thread Field -->
-        <div class="flex items-center p-4 hover:bg-muted/5 transition-colors">
-          <div class="w-1/3 flex items-center gap-2">
-            <span class="text-sm font-medium">இழை</span>
+        <div class="flex flex-col md:flex-row items-center p-2 md:p-4 hover:bg-muted/5 transition-colors">
+          <div class="w-full md:w-1/3 flex items-center gap-2">
+            <span class="text-xs md:text-sm font-medium">இழை</span>
             <span class="text-xs text-muted-foreground">/</span>
-            <span class="text-sm text-muted-foreground">Thread</span>
+            <span class="text-xs md:text-sm text-muted-foreground">Thread</span>
           </div>
           <div class="flex-1">
             <Input
@@ -236,6 +204,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChevronDownIcon, PlusIcon, ImageIcon, UploadIcon, LinkIcon, XIcon } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 definePageMeta({
   layout: 'default'
@@ -330,7 +301,7 @@ const handleImageUrl = async () => {
 }
 
 // Add active tab state
-const activeTab = ref('upload')
+const activeTab = ref('url') // Set default to URL
 
 // Bilingual data for dropdowns
 const sections = [
@@ -399,7 +370,7 @@ const handleSubmit = async () => {
     }
 
     // Success - redirect to threads list
-    navigateTo('/threads')
+    router.push('/izhaigal')
 
   } catch (err) {
     console.error('Failed to save thread:', err)
@@ -413,7 +384,7 @@ const handleSubmit = async () => {
 const removeThumbnail = () => {
   form.value.thumbnail = null
   form.value.thumbnailUrl = ''
-  activeTab.value = 'upload' // Reset to upload tab
+  activeTab.value = 'url' // Reset to URL tab
 }
 </script>
 
@@ -475,4 +446,4 @@ input:focus {
 .group:hover .hover\:bg-black\/75:hover {
   background-color: rgba(0, 0, 0, 0.75);
 }
-</style> 
+</style>

@@ -9,7 +9,7 @@ import {
   SidebarTrigger,
   SidebarFooter 
 } from '@/components/ui/sidebar'
-import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn, LogOut, User } from 'lucide-vue-next'
+import { Globe, Library, MessageSquare, Sun, Moon, Settings, LogIn, LogOut, User, PenSquare, Layers } from 'lucide-vue-next'
 import { useRoute, useRouter } from '#imports'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import {
@@ -30,6 +30,29 @@ const showProfileMenu = ref(false)
 const { mastodonUser, accessToken, validateToken, signOut } = useMastodon()
 const currentLanguage = ref('TA')
 const state = ref('expanded')
+const userRole = ref('')
+
+// Fetch user role from localStorage on mount
+onMounted(() => {
+  const storedRole = localStorage.getItem('userRole')
+  if (storedRole) {
+    userRole.value = storedRole
+    console.log('User Role Loaded:', storedRole) // Log role loading
+  }
+})
+
+// Watch for changes in localStorage
+watch(() => localStorage.getItem('userRole'), (newRole) => {
+  if (newRole) {
+    userRole.value = newRole
+    console.log('User Role Updated:', newRole) // Log role update
+  } else {
+    userRole.value = ''
+    console.log('User Role Cleared') // Log role clearing
+  }
+})
+
+const isPublisher = computed(() => userRole.value === 'publisher')
 
 const isAuthenticated = computed(() => {
   const hasAuth = !!accessToken.value && !!mastodonUser.value
@@ -69,6 +92,10 @@ const toggleTheme = () => {
 }
 
 const navigate = (path: string) => {
+  const storedRole = localStorage.getItem('userRole')
+  if (storedRole) {
+    userRole.value = storedRole
+  }
   router.push(path)
   sheetOpen.value = false // Close sheet after navigation
   showProfileMenu.value = false // Close profile menu
@@ -89,7 +116,7 @@ const handleSignOut = async () => {
         <IconAsterisk class="h-5 w-5 text-foreground" />
       </SidebarTrigger>
       
-      <SidebarContent>
+      <SidebarContent v-if="state === 'expanded'">
         <SidebarMenu>
           <SidebarMenuButton 
             @click="navigate('/')"
@@ -120,6 +147,29 @@ const handleSignOut = async () => {
             <Library class="text-foreground" />
             <span>நூலகம்</span>
           </SidebarMenuButton>
+
+          <!-- Publisher-specific menu items -->
+          <template v-if="isPublisher">
+            <SidebarMenuButton 
+              @click="navigate('/izhaigal')"
+              :is-active="route.path === '/izhaigal'"
+              tooltip="இழை"
+              class="text-foreground hover:bg-transparent"
+            >
+              <Layers class="text-foreground" />
+              <span>இழை</span>
+            </SidebarMenuButton>
+
+            <SidebarMenuButton 
+              @click="navigate('/pathivu')"
+              :is-active="route.path === '/pathivu'"
+              tooltip="பதிவு"
+              class="text-foreground hover:bg-transparent"
+            >
+              <PenSquare class="text-foreground" />
+              <span>பதிவு</span>
+            </SidebarMenuButton>
+          </template>
 
           <!-- Bottom Icons Container -->
           <div class="mt-auto flex flex-col gap-2 p-2">
@@ -172,6 +222,48 @@ const handleSignOut = async () => {
         </div>
       </SidebarContent>
 
+      <SidebarContent v-else>
+        <SidebarMenu>
+          <SidebarMenuButton 
+            @click="navigate('/')"
+            :is-active="route.path === '/'"
+          >
+            <Globe class="h-5 w-5" />
+          </SidebarMenuButton>
+
+          <SidebarMenuButton 
+            @click="navigate('/thamizhi')"
+            :is-active="route.path === '/thamizhi'"
+          >
+            <MessageSquare class="h-5 w-5" />
+          </SidebarMenuButton>
+
+          <SidebarMenuButton 
+            @click="navigate('/noolakam')"
+            :is-active="route.path === '/noolakam'"
+          >
+            <Library class="h-5 w-5" />
+          </SidebarMenuButton>
+
+          <!-- Publisher-specific menu items -->
+          <template v-if="isPublisher">
+            <SidebarMenuButton 
+              @click="navigate('/izhaigal')"
+              :is-active="route.path === '/izhaigal'"
+            >
+              <Layers class="h-5 w-5" />
+            </SidebarMenuButton>
+
+            <SidebarMenuButton 
+              @click="navigate('/pathivu')"
+              :is-active="route.path === '/pathivu'"
+            >
+              <PenSquare class="h-5 w-5" />
+            </SidebarMenuButton>
+          </template>
+        </SidebarMenu>
+      </SidebarContent>
+
       <SidebarFooter>
         <SidebarMenuButton 
           v-if="!isAuthenticated"
@@ -204,7 +296,7 @@ const handleSignOut = async () => {
                   <span class="text-lg font-semibold">தமிழி</span>
                 </div>
               </div>
-              <div class="flex-1 p-2">
+              <div class="flex-1 p-2 overflow-y-auto">
                 <div class="space-y-2">
                   <Button 
                     variant="ghost" 
@@ -215,27 +307,24 @@ const handleSignOut = async () => {
                     <Globe class="mr-2 h-5 w-5" />
                     அலை
                   </Button>
-                  
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/thamizhi' }"
-                    @click="navigate('/thamizhi')"
+                    :class="{ 'bg-accent': route.path === '/izhai' }"
+                    @click="navigate('/izhai')"
                   >
-                    <MessageSquare class="mr-2 h-5 w-5" />
-                    தமிழி
+                    <Layers class="mr-2 h-5 w-5" />
+                    இழை
                   </Button>
-                  
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
-                    :class="{ 'bg-accent': route.path === '/noolakam' }"
-                    @click="navigate('/noolakam')"
+                    :class="{ 'bg-accent': route.path === '/padhivu' }"
+                    @click="navigate('/padhivu')"
                   >
-                    <Library class="mr-2 h-5 w-5" />
-                    நூலகம்
+                    <PenSquare class="mr-2 h-5 w-5" />
+                    பதிவு
                   </Button>
-
                   <Button 
                     variant="ghost" 
                     class="w-full justify-start"
@@ -268,7 +357,7 @@ const handleSignOut = async () => {
                     v-else
                     variant="ghost" 
                     class="w-full justify-start"
-                    @click="navigate('/login')"
+                    @click="navigate('/signin')"
                   >
                     <LogIn class="mr-2 h-5 w-5" />
                     Sign In
@@ -286,7 +375,7 @@ const handleSignOut = async () => {
       <slot />
     </main>
   </SidebarProvider>
-</template> 
+</template>
 
 <style scoped>
 /* Remove the invert and filter-none styles since we're using fill-current now */

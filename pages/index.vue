@@ -180,6 +180,54 @@ async function handleReply(postId: string, content: string) {
   }
 }
 
+// Optimistically update the UI for liking
+async function handleLike(postId: string) {
+  const postIndex = posts.value.findIndex(post => post.id === postId)
+  if (postIndex !== -1) {
+    posts.value[postIndex].favourites_count++
+  }
+  try {
+    const response = await fetch(`https://${MASTODON_INSTANCE}/api/v1/statuses/${postId}/favourite`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken.value}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    if (!response.ok) throw new Error('Failed to like the post')
+    console.log(`Liked post with ID: ${postId}`)
+  } catch (error) {
+    console.error('Error liking the post:', error)
+    if (postIndex !== -1) {
+      posts.value[postIndex].favourites_count-- // Revert the optimistic update on error
+    }
+  }
+}
+
+// Optimistically update the UI for reposting
+async function handleRepost(postId: string) {
+  const postIndex = posts.value.findIndex(post => post.id === postId)
+  if (postIndex !== -1) {
+    posts.value[postIndex].reblogs_count++
+  }
+  try {
+    const response = await fetch(`https://${MASTODON_INSTANCE}/api/v1/statuses/${postId}/reblog`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken.value}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    if (!response.ok) throw new Error('Failed to repost')
+    console.log(`Reposted post with ID: ${postId}`)
+  } catch (error) {
+    console.error('Error reposting:', error)
+    if (postIndex !== -1) {
+      posts.value[postIndex].reblogs_count-- // Revert the optimistic update on error
+    }
+  }
+}
+
 let commentPollingInterval: NodeJS.Timeout | null = null
 
 function startCommentPolling() {
@@ -199,12 +247,31 @@ function stopCommentPolling() {
   }
 }
 
+let pollingInterval: NodeJS.Timeout | null = null
+
+function startPolling() {
+  if (pollingInterval) return
+  
+  pollingInterval = setInterval(() => {
+    fetchMastodonData()
+  }, 30000) // Poll every 30 seconds
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+
 onMounted(() => {
   fetchMastodonData()
+  startPolling()
 })
 
 onUnmounted(() => {
   stopCommentPolling()
+  stopPolling()
   document.body.classList.remove('comments-open')
 })
 </script>
@@ -275,11 +342,21 @@ onUnmounted(() => {
               
               <!-- Interaction Buttons -->
               <div class="flex items-center gap-6 pt-2">
-                <Button variant="ghost" size="sm" class="text-muted-foreground hover:text-primary">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  class="text-muted-foreground hover:text-primary"
+                  @click="handleLike(post.id)"
+                >
                   <Heart class="w-5 h-5 mr-1" />
                   <span>{{ post.favourites_count }}</span>
                 </Button>
-                <Button variant="ghost" size="sm" class="text-muted-foreground hover:text-primary">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  class="text-muted-foreground hover:text-primary"
+                  @click="handleRepost(post.id)"
+                >
                   <Repeat2 class="w-5 h-5 mr-1" />
                   <span>{{ post.reblogs_count }}</span>
                 </Button>
@@ -439,4 +516,4 @@ onUnmounted(() => {
     height: 100%;
   }
 }
-</style> 
+</style>

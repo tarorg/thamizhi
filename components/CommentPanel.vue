@@ -113,16 +113,18 @@ function handleReply() {
 .flex-1 {
   min-height: 0;
   /* Add max height to ensure scrolling works with fixed input */
-  max-height: calc(100vh - 140px); /* Adjust based on header and input heights */
+  max-height: calc(100vh - 180px); /* Adjust based on header and input heights */
+  overflow-y: auto;
 }
 
-@media (min-width: 768px) {
+/* Mobile adjustments */
+@media (max-width: 768px) {
   .flex-1 {
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 140px);
   }
 }
 
 :deep(p) {
   margin: 0;
 }
-</style> 
+</style>
