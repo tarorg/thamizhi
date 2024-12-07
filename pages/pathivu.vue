@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import axios from 'axios';
 import { Card } from '@/components/ui/card'
 import { 
   Select,
@@ -7,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue 
 } from '@/components/ui/select'
-import PublishPanel from '@/components/ui/drawer/PublishPanel.vue'
 import { 
   Sheet, 
   SheetContent, 
@@ -19,9 +19,11 @@ import {
   VideoIcon, 
   FileIcon,
   PlusIcon,
-  FolderIcon
+  FolderIcon,
+  ArrowLeftIcon
 } from 'lucide-vue-next'
 import FileUpload from '@/components/ui/upload/FileUpload.vue'
+import { toRaw } from 'vue';
 
 // Define the type for EditorJS data
 interface EditorData {
@@ -62,7 +64,24 @@ const post = ref({
   asset: null as File | null,
   content: {
     blocks: []
-  } as EditorData
+  } as EditorData,
+  slug: '',
+  tags: '',
+  status: 'Published',
+  authors: '',
+  publishDate: new Date().toISOString().slice(0, 16),
+  excerpt: ''
+})
+
+const slug = computed(() => {
+  return post.value.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric characters with hyphens
+    .replace(/^-+|-+$/g, ''); // Trim hyphens from start and end
+})
+
+watch(() => post.value.title, (newTitle) => {
+  post.value.slug = newTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 })
 
 const editor = ref<any>(null)
@@ -215,12 +234,172 @@ const handleAssetUpload = (event: Event) => {
 }
 
 const handleSubmit = async () => {
-  if (editor.value) {
-    const savedData = await editor.value.save()
-    post.value.content = savedData
+  alert('Submit button clicked!');
+  try {
+    console.log('🚀 === STARTING POST SUBMISSION ===');
+    console.log('📝 Current Post Data:', {
+      title: post.value.title,
+      type: post.value.type,
+      excerpt: post.value.excerpt
+    });
+
+    // Validate required fields
+    if (!post.value.title) {
+      console.error('Validation Error: Title is required');
+      alert('Title is required');
+      return;
+    }
+    if (!post.value.type) {
+      console.error('Validation Error: Type is required');
+      alert('Type is required');
+      return;
+    }
+
+    // 1. Generate embedding first
+    console.log('1️⃣ Starting Embedding Generation...');
+    let editorContent = '';
+    if (editor.value) {
+      const savedData = await editor.value.save();
+      editorContent = JSON.stringify(savedData);
+      console.log('📄 Editor Content Retrieved:', editorContent.substring(0, 100) + '...');
+    }
+
+    const textForEmbedding = `${post.value.title} ${post.value.excerpt || ''} ${editorContent}`;
+    console.log('📦 Text being used for embedding:', textForEmbedding.substring(0, 100) + '...');
+
+    console.log('🔄 Calling Embedding API...');
+    const embeddingResponse = await axios.post(
+      'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=AIzaSyCtOrclZzzSd4fUqWXGaX7piJizBFnOPRA',
+      {
+        model: 'models/text-embedding-004',
+        content: {
+          parts: [{ text: textForEmbedding }]
+        }
+      },
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+    
+    console.log('✅ Embedding API Response Received');
+    const embedding = embeddingResponse.data.embedding?.values || [];
+    console.log('📊 Embedding Vector Length:', embedding.length);
+    console.log('🔍 First few values of embedding:', embedding.slice(0, 5));
+
+    // 2. Validate input
+    console.log('2️⃣ Validating Input...');
+    const validationErrors = [];
+    if (!post.value.title) validationErrors.push('Title is required');
+    if (!post.value.type) validationErrors.push('Type is required');
+    if (!embedding.length) validationErrors.push('Embedding generation failed');
+    
+    if (validationErrors.length > 0) {
+      console.error('❌ Validation Errors:', validationErrors);
+      throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+    }
+    console.log('✅ Validation Passed');
+
+    // 3. Prepare all post data
+    console.log('3️⃣ Preparing Post Data...');
+    const postData = toRaw(post.value);
+    const preparedData = {
+      ...postData,
+      requests: [], // Add an appropriate structure here based on server requirements
+      thumbnailUrl: post.value.thumbnailUrl,
+      title: post.value.title,
+      type: post.value.type,
+      thread: post.value.thread,
+      assetUrl: post.value.type === 'post' ? null : post.value.assetUrl, // Default to null for 'post' type
+      content: JSON.stringify(post.value.content), // Ensure content is serialized
+      slug: post.value.slug,
+      tags: JSON.stringify(postData.tags || []), // Convert to JSON string
+      status: postData.status || 'draft',
+      authors: JSON.stringify(postData.authors || []), // Convert to JSON string
+      publishDate: postData.publishDate || new Date().toISOString(),
+      excerpt: postData.excerpt || '',
+      log: postData.log || '',
+      embedding: embedding,
+      createdAt: new Date().toISOString()
+    };
+    console.log('📋 Prepared Data:', {
+      title: preparedData.title,
+      type: preparedData.type,
+      slug: preparedData.slug,
+      embeddingLength: preparedData.embedding.length
+    });
+
+    // Log the complete data prepared for insertion
+    console.log('🔍 Prepared Data for Insertion:', {
+      thumbnailUrl: post.value.thumbnailUrl,
+      title: post.value.title,
+      type: post.value.type,
+      thread: post.value.thread,
+      assetUrl: post.value.assetUrl,
+      content: post.value.content,
+      slug: post.value.slug,
+      tags: postData.tags || [],
+      status: postData.status || 'draft',
+      authors: postData.authors || [],
+      publishDate: postData.publishDate || new Date().toISOString(),
+      excerpt: postData.excerpt || '',
+      log: postData.log || '',
+      embedding: embedding,
+      createdAt: new Date().toISOString()
+    });
+
+    // 4. Insert into database
+    console.log('4️⃣ Inserting into Database...');
+    console.log('📤 Payload being sent:', preparedData);
+    const response = await axios.post(
+      'https://thamizhi-thamizhiorg.turso.io/v2/pipeline',
+      preparedData,
+      {
+        headers: {
+          Authorization: `Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3MzI2OTU0NDMsImlkIjoiNDMyNTdlMTMtZjViMC00ZmY0LWE1Y2QtNDFlMDJjYTBjOWU0In0.Z4Q-D3LX9bZ_VAo6sgnZSeC2d_ghWfHzBbpinio56MCJKL7bpGtWVmSrrU5DJaE2n0ONY1_PO9Lh1OzS6pFGAA`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log('✅ Database Response:', response.data);
+
+    if (response.data.results?.[0]?.error) {
+      console.error('❌ Database Error:', response.data.results[0].error);
+      throw new Error(`Database error: ${response.data.results[0].error}`);
+    }
+
+    console.log('✅ Post Created Successfully!');
+    
+    // Reset form after successful insertion
+    post.value = {
+      thumbnail: null,
+      thumbnailUrl: '',
+      title: '',
+      type: '',
+      thread: '',
+      assetUrl: '',
+      content: null,
+      slug: '',
+      tags: [],
+      status: 'draft',
+      authors: [],
+      publishDate: '',
+      excerpt: '',
+      log: '',
+      asset: null
+    };
+
+    console.log('🎉 === SUBMISSION COMPLETE ===');
+
+  } catch (error) {
+    console.error('❌ === ERROR IN SUBMISSION ===');
+    console.error('🚫 Error Details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    throw error;
   }
-  console.log('Submitting post:', post.value)
-}
+};
 
 const isDrawerOpen = ref(false)
 
@@ -321,6 +500,25 @@ const handleFileChange = async () => {
 // Add these refs with your other refs
 const threads = ref<ThreadOption[]>([])
 const selectedThread = ref('')
+
+// Ensure formData is initialized with post defaults
+const formData = ref({
+  slug: post.value.slug,
+  tags: post.value.tags,
+  status: post.value.status,
+  authors: post.value.authors,
+  publishDate: post.value.publishDate,
+  excerpt: post.value.excerpt
+})
+
+// Add emit for update:open and update:selectedThread
+const emit = defineEmits(['update:open', 'update:selectedThread'])
+
+// Add handlePublish function
+const handlePublish = async () => {
+  // Implement publish logic here
+  console.log('Publishing post:', post.value)
+}
 </script>
 
 <template>
@@ -484,7 +682,7 @@ const selectedThread = ref('')
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <path d="m9 18 6-6-6-6"/>
+          <path d="m15 18-6-6 6-6"/>
         </svg>
       </button>
 
@@ -514,7 +712,7 @@ const selectedThread = ref('')
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <path d="m9 18 6-6-6-6"/>
+          <path d="m9 18-6-6 6-6"/>
         </svg>
       </button>
 
@@ -535,13 +733,79 @@ const selectedThread = ref('')
     </div>
 
     <!-- Settings Drawer -->
-    <PublishPanel 
-      v-model="isDrawerOpen" 
-      :open="isDrawerOpen"
-      :threads="threads"
-      v-model:selected-thread="post.thread"
-      @update:open="isDrawerOpen = $event"
-    />
+    <Sheet 
+      :open="isDrawerOpen" 
+      @update:open="$emit('update:open', $event)" 
+      side="right"
+      :closeButton="false"
+      name="publishpanel"
+    >
+      <SheetContent 
+        class="w-[400px] sm:w-[540px]"
+        :showClose="false"
+      >
+        <div class="flex flex-col h-full">
+          <!-- Header with action buttons -->
+          <SheetHeader class="border-b pb-4">
+            <div class="flex items-center justify-between">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                @click="isDrawerOpen = false"
+              >
+                <ArrowLeftIcon />
+              </Button>
+              <Button 
+                variant="primary" 
+                size="sm"
+                class="ml-auto"
+                @click="handleSubmit"
+              >
+                Publish
+              </Button>
+              <!-- Other template content from PublishPanel.vue -->
+            </div>
+          </SheetHeader>
+          <div class="p-4">
+            <!-- Notion-like inline field table with styling -->
+            <table class="w-full border-collapse">
+              <tbody>
+                <tr class="border-b">
+                  <td class="py-4 pr-4 font-semibold">Thread</td>
+                  <td><select v-model="selectedThread" class="w-full"><option value="">Select thread...</option><option v-for="thread in threads" :key="thread.id" :value="thread.thread">{{ thread.thread }}</option></select></td>
+                </tr>
+                <tr class="border-b">
+                  <td class="py-4 pr-4 font-semibold">Slug</td>
+                  <td><input type="text" placeholder="Enter URL slug..." v-model="slug" class="w-full" /></td>
+                </tr>
+                <tr class="border-b">
+                  <td class="py-4 pr-4 font-semibold">Tags</td>
+                  <td><input type="text" placeholder="Add tags..." v-model="formData.tags" class="w-full" /></td>
+                </tr>
+                <tr class="border-b">
+                  <td class="py-4 pr-4 font-semibold">Status</td>
+                  <td><select v-model="formData.status" class="w-full"><option>Published</option><option>Draft</option></select></td>
+                </tr>
+                <tr class="border-b">
+                  <td class="py-4 pr-4 font-semibold">Authors</td>
+                  <td><input type="text" placeholder="Add authors..." v-model="formData.authors" class="w-full" /></td>
+                </tr>
+                <tr class="border-b">
+                  <td class="py-4 pr-4 font-semibold">Publish Date</td>
+                  <td>
+                    <input type="datetime-local" v-model="formData.publishDate" class="w-full" />
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-4 pr-4 font-semibold">Excerpt</td>
+                  <td><textarea placeholder="Add a brief excerpt..." v-model="formData.excerpt" class="w-full"></textarea></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   </div>
 </template>
 
@@ -671,4 +935,9 @@ audio::-webkit-media-controls-mute-button {
 video::-webkit-media-controls-panel {
   background-image: linear-gradient(transparent, rgba(0, 0, 0, 0.5));
 }
-</style> 
+
+/* Input and select styles from PublishPanel.vue */
+input, select, textarea {
+  /* Styles here */
+}
+</style>
